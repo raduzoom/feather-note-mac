@@ -57,7 +57,7 @@ Specs, crypto test vectors, designs and the roadmap live in the `universal` repo
 
 - `AppModel` (`FeatherNote/Model/`) owns every behaviour and all UI state; views only read it and call its methods. Test behaviour through `AppModel` in `FeatherNoteTests` (Swift Testing, hosted by the app), not through views.
 - The main window is an AppKit `NSWindow` hosting SwiftUI, created in `AppDelegate`. SwiftUI's `Window`/`WindowGroup` scene opened no window unless the app was launched through LaunchServices, so XCUITest and shell launches showed nothing.
-- The text views (`PlainTextEditor`, `TitleEditor`) must keep every macOS substitution off (`disableSubstitutions()`); `editorTextViewHasNoSubstitutions` guards it.
+- The text views (FeatherEditor's `EditorTextView`, `TitleEditor`) must keep every macOS substitution off (`applyNoSubstitutions()` / `disableSubstitutions()`); `editorTextViewHasNoSubstitutions` guards it.
 - Never let SwiftUI measure a view with `.fixedSize(vertical:)` or an unbounded height: during min-size probing at near-zero widths it reports a huge height and the whole window content shifts upward.
 - Launch arguments for tests only: `-FeatherLibraryPath <dir>` (never touch the real library) and `-FeatherColorScheme light|dark`. A unit-test host run always uses a temporary library.
 - UI tests drive the screen. The first run may ask once to let Xcode control the computer. Screenshots of the designed screens, compared with `../universal/design/handoff/screens/`:
@@ -67,6 +67,21 @@ TEST_RUNNER_FEATHER_SHOT_LIB=<seeded library dir> xcodebuild test -project Feath
 ```
 
   Images land in `~/Library/Containers/app.feathernote.FeatherNoteUITests.xctrunner/Data/tmp/shots/`. Seed a library with `fncore init` and `fncore import <dir> <markdown folder>`. Don't use `screencapture`: it asks the user for screen-recording permission.
+
+## FeatherEditor (when changing the editor package)
+
+- The text storage always holds the note's exact Markdown; nothing is ever inserted or removed for display. Styling is attributes (`MarkdownStyler`, a pure function from text + parse to runs) plus TextKit 2 layout fragments (`DecoratedLayoutFragment`) that draw bullets, checkboxes, quote and code surfaces, rules, images and chips. Hidden markers are real characters at font size 0.01.
+- TextKit 2 only: never touch `layoutManager` (it switches the view to TextKit 1 for good). Use `textLayoutManager`.
+- TextKit reads paragraph attributes (paragraph style, `.featherDecoration`) from a paragraph's first character, so style from the line start (`eachLine`, `fullLines`), not from the block's range.
+- A fragment's frame already starts at the paragraph's indent: place decorations relative to `textStartX`, never by adding the indent again. `locationForCharacter(at:)` is unreliable for the character right after a kerned glyph.
+- Styling work must stay proportional to the edit: a keystroke restyles its block once, a caret move restyles the blocks it left and entered, and a full restyle styles 16 KB around the caret and the rest in background chunks. `RestyleScopeTests` and `BackgroundStylingTests` guard this.
+- Pathological input: nesting past 32 levels is neutralised before parsing (`NestingLimit`), and a block over 64 KB is shown as plain Markdown (`maxStyledBlockLength`).
+- `IncrementalParser` must always equal a full parse (`matchesFullParseAfterRandomEdits`). It reparses to the end of the note for fences, HTML block openers and closers, and unclosed fences or HTML blocks before the edit; any `]:` in the note (a possible link reference definition) makes it parse in full.
+- Markers reveal only at the selection's two ends (the caret), so ⌘A restyles two blocks, not the note.
+- Work that finishes after an await (attachment import) must check `loadGeneration` and use an anchor moved by edits, never a range captured before the await.
+- Performance gate (release; debug only catches large regressions): `swift test -c release --package-path Packages/FeatherEditor --filter PerformanceTests`. Budgets (the benchmark warms AppKit up first, as the app does at launch): open a 50k-word note < 150 ms, keystroke median < 4 ms and p99 < 16 ms, hostile inputs < 1 s. `timeout`/`alarm` around `swift test` leaves `swiftpm-testing-helper` running: `pkill -f swiftpm-testing-helper` afterwards.
+- Screenshots of the editor without UI automation: `FEATHER_SHOT_DIR=<dir> swift test --package-path Packages/FeatherEditor --filter RenderShotsTests`, then compare with `../universal/design/handoff/screens/desktop-editor-*`.
+- To add a corpus file: drop a `.md` file into `Packages/FeatherEditor/Tests/FeatherEditorTests/Fixtures/corpus/`. Every corpus test (round trip, incremental-vs-full parse, nesting limit untouched) picks it up.
 
 ## FeatherCore (when changing the library code)
 
