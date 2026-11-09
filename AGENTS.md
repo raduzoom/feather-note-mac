@@ -26,7 +26,7 @@ for d in .git/index build Packages/*/.build; do [ -e "$d" ] && xattr -w com.drop
 
 ## Specs and plans (when starting or finishing a phase)
 
-Specs, crypto test vectors, designs and the roadmap live in the `universal` repo at `../universal/`. Phase workflow: `../universal/AGENTS.md`. From Phase 6, FeatherCrypto's tests read `../universal/test-vectors/`; CI then checks out the universal repo next to this one.
+Specs, crypto test vectors, designs and the roadmap live in the `universal` repo at `../universal/`. Phase workflow: `../universal/AGENTS.md`. From Phase 6, FeatherCrypto's tests read `../universal/test-vectors/`; CI then checks out the universal repo next to this one. That repo is private, so the checkout needs a read-only deploy key or fine-grained token stored as a secret in this repo.
 
 ## Decisions (when naming, versioning or signing anything)
 
