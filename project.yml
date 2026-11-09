@@ -1,0 +1,57 @@
+name: FeatherNote
+options:
+  bundleIdPrefix: app.feathernote
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: 0.0.1
+    CURRENT_PROJECT_VERSION: 1
+    CODE_SIGN_IDENTITY: "-"
+    ENABLE_HARDENED_RUNTIME: YES
+  configs:
+    Release:
+      ONLY_ACTIVE_ARCH: NO
+packages:
+  FeatherCore:
+    path: Packages/FeatherCore
+  FeatherCrypto:
+    path: Packages/FeatherCrypto
+  FeatherSync:
+    path: Packages/FeatherSync
+  FeatherEditor:
+    path: Packages/FeatherEditor
+  FeatherImport:
+    path: Packages/FeatherImport
+targets:
+  FeatherNote:
+    type: application
+    platform: macOS
+    sources: [FeatherNote]
+    settings:
+      base:
+        PRODUCT_NAME: Feather Note
+        PRODUCT_BUNDLE_IDENTIFIER: app.feathernote.FeatherNote
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Feather Note
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
+    dependencies:
+      - package: FeatherCore
+      - package: FeatherCrypto
+      - package: FeatherSync
+      - package: FeatherEditor
+      - package: FeatherImport
+schemes:
+  FeatherNote:
+    build:
+      targets:
+        FeatherNote: all
+    test:
+      targets:
+        - package: FeatherCore/FeatherCoreTests
+        - package: FeatherCrypto/FeatherCryptoTests
+        - package: FeatherSync/FeatherSyncTests
+        - package: FeatherEditor/FeatherEditorTests
+        - package: FeatherImport/FeatherImportTests
