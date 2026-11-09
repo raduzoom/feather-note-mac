@@ -1,3 +1,4 @@
+import FeatherEditor
 import FeatherCore
 import Foundation
 import Synchronization
@@ -373,5 +374,38 @@ private let day: Int64 = 86_400_000
         await m.toggleTag(tag.id, on: a)
         #expect(m.tagsByNote[a, default: []].isEmpty)
         #expect(try await m.library.note(a)?.tagIDs == [])
+    }
+}
+
+// MARK: Phase 4: editor integration
+
+@MainActor @Suite struct EditorIntegrationTests {
+    @Test func editorModePersists() async throws {
+        let defaults = UserDefaults(suiteName: "FNTests-\(UUID().uuidString)")!
+        let m = try await makeModel(defaults: defaults)
+        #expect(m.editorMode == .live)
+        m.toggleEditorMode()
+        #expect(m.editorMode == .raw)
+        let again = try await makeModel(defaults: defaults)
+        #expect(again.editorMode == .raw)
+    }
+
+    @Test func addAttachmentsReturnsSnippets() async throws {
+        let m = try await makeModel()
+        let dir = FileManager.default.temporaryDirectory.appending(path: "FNDrop-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let png = dir.appending(path: "Floor [plan].png")
+        try Data([0x89, 0x50, 0x4E, 0x47]).write(to: png)
+        let pdf = dir.appending(path: "receipt.pdf")
+        try Data("%PDF".utf8).write(to: pdf)
+        let snippets = await m.addAttachments(from: [png, pdf])
+        let all = try await m.library.attachments()
+        #expect(all.count == 2)
+        let image = try #require(all.first { $0.filename == "Floor [plan].png" })
+        let file = try #require(all.first { $0.filename == "receipt.pdf" })
+        #expect(snippets == ["![Floor \\[plan\\].png](feather://attachment/\(image.id))", "[receipt.pdf](feather://attachment/\(file.id))"])
+        #expect(m.attachmentURL(for: "feather://attachment/\(file.id)").map { try? Data(contentsOf: $0) } == Data("%PDF".utf8))
+        #expect(m.attachmentURL(for: "feather://attachment/01JC8ZQ6V4N1XG2H3K5M7P9R0T") == nil)
+        #expect(m.attachmentURL(for: "https://example.com") == nil)
     }
 }

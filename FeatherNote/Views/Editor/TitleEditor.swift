@@ -98,54 +98,6 @@ extension FeatherTextView {
     }
 }
 
-/// The note body: plain Markdown in a scrolling text view (Phase 4 replaces it with live preview).
-struct PlainTextEditor: NSViewRepresentable {
-    @Binding var text: String
-    var isEditable: Bool
-    var placeholder: String = "Start writing…"
-
-    static func makeTextView() -> FeatherTextView {
-        let tv = FeatherTextView(frame: .zero)
-        tv.disableSubstitutions()
-        tv.usesFindBar = true
-        tv.isIncrementalSearchingEnabled = true
-        tv.drawsBackground = false
-        tv.isVerticallyResizable = true
-        tv.isHorizontallyResizable = false
-        tv.autoresizingMask = [.width]
-        tv.textContainer?.widthTracksTextView = true
-        tv.verticalInset = 8
-        tv.applyTypography(font: Theme.bodyNSFont(), lineHeight: 25.6, color: Theme.textBodyNS)
-        tv.insertionPointColor = Theme.accentNS
-        tv.setAccessibilityLabel("Note body")
-        tv.setAccessibilityIdentifier("note-body")
-        return tv
-    }
-
-    func makeCoordinator() -> TextViewCoordinator { TextViewCoordinator { _ in } }
-
-    func makeNSView(context: Context) -> NSScrollView {
-        let scroll = NSScrollView()
-        scroll.drawsBackground = false
-        scroll.hasVerticalScroller = true
-        scroll.autohidesScrollers = true
-        let tv = Self.makeTextView()
-        tv.placeholder = placeholder
-        tv.delegate = context.coordinator
-        scroll.documentView = tv
-        tv.setTextIfChanged(text)
-        return scroll
-    }
-
-    func updateNSView(_ scroll: NSScrollView, context: Context) {
-        context.coordinator.onChange = { text = $0 }
-        guard let tv = scroll.documentView as? FeatherTextView else { return }
-        tv.isEditable = isEditable
-        tv.placeholder = placeholder
-        tv.setTextIfChanged(text)
-    }
-}
-
 /// The note title: one line, serif 44, same no-substitution rules as the body. Return moves to the body.
 struct TitleEditor: NSViewRepresentable {
     @Binding var text: String

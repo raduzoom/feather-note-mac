@@ -1,9 +1,10 @@
 import AppKit
+import FeatherEditor
 import Testing
 @testable import FeatherNote
 
 @MainActor @Test func editorTextViewHasNoSubstitutions() {
-    for tv in [PlainTextEditor.makeTextView(), TitleEditor.makeTextView()] {
+    for tv in [EditorTextView.make() as NSTextView, TitleEditor.makeTextView()] {
         #expect(!tv.isRichText)
         #expect(!tv.isAutomaticQuoteSubstitutionEnabled)
         #expect(!tv.isAutomaticDashSubstitutionEnabled)
@@ -17,14 +18,16 @@ import Testing
         tv.insertText("\"x\" -- (c) 'y'...", replacementRange: NSRange(location: 0, length: 0))
         #expect(tv.string == "\"x\" -- (c) 'y'...")
     }
-    let body = PlainTextEditor.makeTextView()
+    let body = EditorTextView.make()
+    body.load("text")
     #expect(body.usesFindBar && body.isIncrementalSearchingEnabled)
-    #expect(body.font?.fontDescriptor.symbolicTraits.contains(.monoSpace) == false)
-    #expect(body.font?.pointSize == 16)
+    let font = body.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+    #expect(font?.fontDescriptor.symbolicTraits.contains(.monoSpace) == false)
+    #expect(font?.pointSize == 16)
 }
 
 @MainActor @Test func bodyKeepsAReadingMeasure() {
-    let tv = PlainTextEditor.makeTextView()
+    let tv = EditorTextView.make()
     tv.setFrameSize(NSSize(width: 1000, height: 600))
     #expect(tv.textContainerInset.width == 220)   // (1000 - 560) / 2
     tv.setFrameSize(NSSize(width: 500, height: 600))

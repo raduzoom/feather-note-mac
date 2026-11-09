@@ -1,5 +1,7 @@
 import FeatherCore
+import FeatherEditor
 import Foundation
+import UniformTypeIdentifiers
 import Observation
 
 /// The open note as the editor sees it.
@@ -64,6 +66,14 @@ final class AppModel {
     private(set) var searchFocusRequest = 0
     func requestSearchFocus() { searchFocusRequest += 1 }
 
+    /// Live preview or raw Markdown (⇧⌘M), remembered across launches.
+    var editorMode: EditorMode {
+        didSet { defaults.set(editorMode.rawValue, forKey: Self.editorModeKey) }
+    }
+    static let editorModeKey = "editorMode"
+    /// Attachment files by id, for the editor (images, chips, ⌘-click).
+    private(set) var attachmentFiles: [ULID: URL] = [:]
+
     var trashRetentionDays: Int {
         didSet { defaults.set(trashRetentionDays, forKey: Self.retentionKey) }
     }
@@ -89,6 +99,48 @@ final class AppModel {
         self.defaults = defaults
         let stored = defaults.integer(forKey: Self.retentionKey)
         trashRetentionDays = stored > 0 ? stored : 30
+        editorMode = EditorMode(rawValue: defaults.string(forKey: Self.editorModeKey) ?? "") ?? .live
+    }
+
+    func toggleEditorMode() { editorMode = editorMode == .live ? .raw : .live }
+
+    /// The file behind a `feather://attachment/<id>` URL, if the library has it.
+    func attachmentURL(for featherURL: String) -> URL? {
+        let prefix = "feather://attachment/"
+        guard featherURL.lowercased().hasPrefix(prefix), let id = ULID(string: String(featherURL.dropFirst(prefix.count))) else { return nil }
+        return attachmentFiles[id]
+    }
+
+    /// Adds dropped or pasted files as attachments; returns the Markdown to insert for each.
+    func addAttachments(from urls: [URL]) async -> [String] {
+        var snippets: [String] = []
+        for url in urls {
+            await attempt {
+                let a = try await library.addAttachment(contentsOf: url)
+                let name = a.filename.replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "[", with: "\\[").replacingOccurrences(of: "]", with: "\\]")
+                let isImage = UTType(filenameExtension: url.pathExtension)?.conforms(to: .image) ?? false
+                snippets.append("\(isImage ? "!" : "")[\(name)](feather://attachment/\(a.id))")
+            }
+        }
+        await reloadAttachmentFiles()
+        return snippets
+    }
+
+    private func reloadAttachmentFiles() async {
+        await attempt {
+            var files: [ULID: URL] = [:]
+            for a in try await library.attachments() {
+                if let url = try await library.attachmentFileURL(a.id) { files[a.id] = url }
+            }
+            attachmentFiles = files
+        }
+    }
+
+    /// Opens a link from the editor: attachments in their default app, everything else in the browser.
+    func openLink(_ url: String) {
+        if let file = attachmentURL(for: url) { NSWorkspaceOpener.open(file) }
+        else if let u = URL(string: url), u.scheme != nil { NSWorkspaceOpener.open(u) }
     }
 
     static func open(at directory: URL, clock: LibraryClock = .system, defaults: UserDefaults = .standard) throws -> AppModel {
@@ -137,6 +189,7 @@ final class AppModel {
 
     /// Reloads everything. The first call per launch also empties expired Trash.
     func load() async {
+        await reloadAttachmentFiles()
         if !purgedThisLaunch {
             purgedThisLaunch = true
             await purgeExpiredTrash()
@@ -489,4 +542,12 @@ final class AppModel {
         case .newerSchema: "This library was made by a newer Feather Note. Update the app to open it."
         }
     }
+}
+
+import AppKit
+
+/// Opening files and URLs (wrapped so the model stays testable).
+@MainActor
+enum NSWorkspaceOpener {
+    static func open(_ url: URL) { NSWorkspace.shared.open(url) }
 }

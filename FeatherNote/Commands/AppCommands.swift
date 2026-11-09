@@ -57,6 +57,9 @@ struct AppCommands: Commands {
                 .keyboardShortcut("f", modifiers: [.command, .option])
         }
         CommandGroup(before: .sidebar) {
+            Button(model?.editorMode == .raw ? "Show Live Preview" : "Show Markdown") { model?.toggleEditorMode() }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
+            Divider()
             Button("All Notes") { act { await $0.select(.all) } }.keyboardShortcut("1")
             Button("Recent") { act { await $0.select(.recent) } }.keyboardShortcut("2")
             Button("Pinned") { act { await $0.select(.pinned) } }.keyboardShortcut("3")

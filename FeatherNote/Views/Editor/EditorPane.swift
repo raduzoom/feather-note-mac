@@ -1,4 +1,5 @@
 import FeatherCore
+import FeatherEditor
 import SwiftUI
 
 /// The right column: the open note, the Trash banner, or an empty state.
@@ -12,9 +13,11 @@ struct EditorPane: View {
                 VStack(alignment: .leading, spacing: 0) {
                     if editor.isTrashed { TrashBanner(model: model, dialogs: dialogs, editor: editor) }
                     header(editor)
-                    PlainTextEditor(text: Binding(get: { model.editor?.body ?? "" }, set: { model.editBody($0) }),
-                                    isEditable: !editor.isTrashed)
-                        .id(editor.id)
+                    MarkdownEditor(text: Binding(get: { model.editor?.body ?? "" }, set: { model.editBody($0) }),
+                                   noteID: editor.id, mode: model.editorMode, isEditable: !editor.isTrashed,
+                                   resolveAttachment: { model.attachmentURL(for: $0) },
+                                   importFiles: { await model.addAttachments(from: $0) },
+                                   openLink: { model.openLink($0) })
                 }
             } else {
                 empty

@@ -1,4 +1,5 @@
 import FeatherCore
+import FeatherEditor
 import SwiftUI
 
 /// Three columns over the glass backdrop, plus every alert the app shows.
@@ -75,10 +76,12 @@ struct EditorToolbar: ToolbarContent {
                     .help("Tags")
                 MoveMenu(model: model, noteID: e.id, title: "Move")
                     .help("Move to a notebook")
-                Button {} label: { Label("Markdown", systemImage: "number") }
-                    .labelStyle(.titleAndIcon)
-                    .disabled(true)
-                    .help("Live preview arrives with the new editor")
+                Toggle(isOn: Binding(get: { model.editorMode == .raw }, set: { _ in model.toggleEditorMode() })) {
+                    Label("Markdown", systemImage: "number")
+                }
+                .toggleStyle(.button)
+                .labelStyle(.titleAndIcon)
+                .help(model.editorMode == .raw ? "Show Live Preview (⇧⌘M)" : "Show Markdown (⇧⌘M)")
                 ShareLink(item: share(e)) { Label("Share", systemImage: "square.and.arrow.up") }
                     .labelStyle(.iconOnly)
                     .help("Share note")
