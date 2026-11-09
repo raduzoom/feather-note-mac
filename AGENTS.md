@@ -18,6 +18,18 @@ xcodebuild build -project FeatherNote.xcodeproj -scheme FeatherNote -configurati
 
 A single package: `swift test --package-path Packages/<Name>`.
 
+FeatherCore's performance gate (search and listing 10k notes under 50 ms) is the release build; debug runs only catch large regressions:
+
+```bash
+swift test -c release --package-path Packages/FeatherCore --filter PerformanceTests
+```
+
+`fncore` is a command-line harness for FeatherCore (`init`, `add`, `list`, `search`, `export`, `import`; run it with no arguments for usage). The crash tests run it and kill it mid-commit.
+
+```bash
+swift run --package-path Packages/FeatherCore fncore list <library-dir>
+```
+
 ## Dropbox (after cloning, after a build, and after git work)
 
 ```bash
@@ -40,6 +52,12 @@ Specs, crypto test vectors, designs and the roadmap live in the `universal` repo
 | Signing | Ad hoc locally, `CODE_SIGNING_ALLOWED=NO` in CI; Developer ID in Phase 10 |
 | Swift packages | One per module under `Packages/`; product, target and `<Name>Tests` names are fixed because `project.yml` refers to them |
 | License | MIT, copyright `The Feather Note authors` |
+
+## FeatherCore (when changing the library code)
+
+- Every mutation goes through `Library.write`, which wraps it in one transaction together with its change-log rows. A `write` inside another `write` joins the outer transaction (import relies on this). Never write to the database outside `write`.
+- FTS5 stays in sync through triggers on `notes`. Change the triggers in a new migration, never in migration 0.
+- Schema changes are new entries appended to `Schema.migrations`; never edit a shipped one.
 
 ## Gotchas
 

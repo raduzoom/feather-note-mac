@@ -10,6 +10,11 @@ Needs Xcode and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 xcodegen generate && xcodebuild test -project FeatherNote.xcodeproj -scheme FeatherNote -destination 'platform=macOS'
 ```
 
+## Packages
+
+- `FeatherCore`: the local library. SQLite with full-text search, notebooks, tags, Trash, attachments, the change log sync reads, and export to and import from a Markdown folder. `fncore` is its command-line harness.
+- `FeatherCrypto`, `FeatherSync`, `FeatherEditor`, `FeatherImport`: placeholders, filled in by later phases.
+
 ## Related repositories
 
 - `feather-note-server`: the Feather Cloud sync server (AGPL-3.0)
