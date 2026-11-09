@@ -33,6 +33,8 @@ targets:
     settings:
       base:
         PRODUCT_NAME: Feather Note
+        PRODUCT_MODULE_NAME: FeatherNote
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         PRODUCT_BUNDLE_IDENTIFIER: app.feathernote.FeatherNote
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: Feather Note
@@ -43,6 +45,28 @@ targets:
       - package: FeatherSync
       - package: FeatherEditor
       - package: FeatherImport
+  FeatherNoteTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [FeatherNoteTests]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: NO
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Feather Note.app/Contents/MacOS/Feather Note"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+    dependencies:
+      - target: FeatherNote
+  FeatherNoteUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources: [Tests/UI]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        ENABLE_HARDENED_RUNTIME: NO
+    dependencies:
+      - target: FeatherNote
 schemes:
   FeatherNote:
     build:
@@ -50,6 +74,8 @@ schemes:
         FeatherNote: all
     test:
       targets:
+        - FeatherNoteTests
+        - FeatherNoteUITests
         - package: FeatherCore/FeatherCoreTests
         - package: FeatherCrypto/FeatherCryptoTests
         - package: FeatherSync/FeatherSyncTests
