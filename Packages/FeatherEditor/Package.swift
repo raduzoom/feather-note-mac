@@ -7,8 +7,11 @@ let package = Package(
     products: [
         .library(name: "FeatherEditor", targets: ["FeatherEditor"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.9.0"),
+    ],
     targets: [
-        .target(name: "FeatherEditor"),
-        .testTarget(name: "FeatherEditorTests", dependencies: ["FeatherEditor"]),
+        .target(name: "FeatherEditor", dependencies: [.product(name: "Markdown", package: "swift-markdown")]),
+        .testTarget(name: "FeatherEditorTests", dependencies: ["FeatherEditor"], resources: [.copy("Fixtures")]),
     ]
 )
