@@ -55,6 +55,16 @@ public struct NoteSummary: Sendable, Equatable, Identifiable {
     public var pinned: Bool
     public var modified: Int64
     public var trashedAt: Int64?
+
+    public init(id: ULID, title: String, preview: String, notebookID: ULID?, pinned: Bool, modified: Int64, trashedAt: Int64?) {
+        self.id = id
+        self.title = title
+        self.preview = preview
+        self.notebookID = notebookID
+        self.pinned = pinned
+        self.modified = modified
+        self.trashedAt = trashedAt
+    }
 }
 
 public enum NoteScope: Sendable, Equatable {

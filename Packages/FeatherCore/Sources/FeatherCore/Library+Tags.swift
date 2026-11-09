@@ -41,6 +41,15 @@ extension Library {
         }
     }
 
+    /// Tag ids per note, for every note that has at least one tag.
+    public func noteTagIDs() throws -> [ULID: Set<ULID>] {
+        var out: [ULID: Set<ULID>] = [:]
+        for (note, tag) in try db.all("SELECT note_id, tag_id FROM note_tags", [], { ($0.ulid(0), $0.ulid(1)) }) {
+            out[note, default: []].insert(tag)
+        }
+        return out
+    }
+
     public func tags() throws -> [Tag] {
         try db.all("SELECT id, name, created, modified FROM tags", [], Self.tag)
             .sorted { Library.nameOrder($0.name, $1.name) }

@@ -1,5 +1,5 @@
 enum Schema {
-    static let version = 1
+    static let version = 2
 
     /// Migration `i` takes the database from version `i` to `i + 1`.
     static let migrations: [String] = [
@@ -44,6 +44,10 @@ enum Schema {
           INSERT INTO notes_fts(notes_fts, rowid, title, body) VALUES ('delete', old.rowid, old.title, old.body);
           INSERT INTO notes_fts(rowid, title, body) VALUES (new.rowid, new.title, new.body);
         END;
+        """,
+        // v2: counts and list filters read only this index, never the note rows with their bodies.
+        """
+        CREATE INDEX notes_state ON notes(trashed_at, pinned, notebook_id);
         """,
     ]
 

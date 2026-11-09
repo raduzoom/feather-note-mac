@@ -58,6 +58,7 @@ private func seconds(_ d: Duration) -> Double {
         times.append(try await clock.measure { _ = try await lib.search(q, notebookID: nb, tagIDs: t) })
     }
     let listTime = try await clock.measure { _ = try await lib.notes(in: .all) }
+    let countsTime = try await clock.measure { _ = try await lib.counts() }
     print("PERF search median \(seconds(median(times)) * 1000) ms, max \(seconds(times.max()!) * 1000) ms; list all \(seconds(listTime) * 1000) ms")
     #expect(median(times) < .milliseconds(50))
     #expect(times.max()! < .milliseconds(150))
@@ -69,4 +70,8 @@ private func seconds(_ d: Duration) -> Double {
     let listLimit = Duration.milliseconds(50)
     #endif
     #expect(listTime < listLimit)
+    print("PERF counts \(seconds(countsTime) * 1000) ms")
+    #if !DEBUG
+    #expect(countsTime < .milliseconds(20))
+    #endif
 }

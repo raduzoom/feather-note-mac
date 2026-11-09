@@ -104,3 +104,22 @@ private func ids(_ hits: [SearchHit]) -> [ULID] { hits.map(\.note.id) }
     #expect(Library.ftsQuery("a\"b") == "\"a\"\"b\"*")
     #expect(Library.ftsQuery("  ") == nil)
 }
+
+@Test func searchInTrashFindsOnlyTrashedNotes() async throws {
+    let lib = try TestLibrary.open()
+    let live = try await lib.createNote(title: "apple live")
+    let gone = try await lib.createNote(title: "apple gone")
+    try await lib.trashNote(gone.id)
+    #expect(try await lib.search("apple", inTrash: true).map(\.note.id) == [gone.id])
+    #expect(try await lib.search("apple").map(\.note.id) == [live.id])
+}
+
+@Test func noteTagIDsMapsEveryTaggedNote() async throws {
+    let lib = try TestLibrary.open()
+    let t1 = try await lib.createTag(name: "a")
+    let t2 = try await lib.createTag(name: "b")
+    let n = try await lib.createNote(tagIDs: [t1.id, t2.id])
+    let m = try await lib.createNote(tagIDs: [t2.id])
+    _ = try await lib.createNote()
+    #expect(try await lib.noteTagIDs() == [n.id: [t1.id, t2.id], m.id: [t2.id]])
+}

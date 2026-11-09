@@ -11,13 +11,14 @@ extension Library {
         return words.map { "\"" + $0.replacingOccurrences(of: "\"", with: "\"\"") + "\"*" }.joined(separator: " ")
     }
 
-    public func search(_ text: String, notebookID: ULID? = nil, tagIDs: Set<ULID> = [], limit: Int = 200) throws -> [SearchHit] {
+    /// `inTrash`: search only notes in the Trash instead of only live ones.
+    public func search(_ text: String, notebookID: ULID? = nil, tagIDs: Set<ULID> = [], inTrash: Bool = false, limit: Int = 200) throws -> [SearchHit] {
         guard let query = Self.ftsQuery(text) else { return [] }
         var sql = """
             SELECT n.id, n.title, substr(n.body, 1, 300), n.notebook_id, n.pinned, n.modified, n.trashed_at,
                    snippet(notes_fts, 1, char(2), char(3), '…', 12)
             FROM notes_fts JOIN notes n ON n.rowid = notes_fts.rowid
-            WHERE notes_fts MATCH ? AND n.trashed_at IS NULL
+            WHERE notes_fts MATCH ? AND n.trashed_at \(inTrash ? "IS NOT NULL" : "IS NULL")
             """
         var values: [SQLValue] = [.text(query)]
         if let notebookID {
