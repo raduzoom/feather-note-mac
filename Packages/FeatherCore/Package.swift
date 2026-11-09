@@ -6,9 +6,11 @@ let package = Package(
     platforms: [.macOS(.v15)],
     products: [
         .library(name: "FeatherCore", targets: ["FeatherCore"]),
+        .executable(name: "fncore", targets: ["fncore"]),
     ],
     targets: [
         .target(name: "FeatherCore"),
-        .testTarget(name: "FeatherCoreTests", dependencies: ["FeatherCore"]),
+        .executableTarget(name: "fncore", dependencies: ["FeatherCore"]),
+        .testTarget(name: "FeatherCoreTests", dependencies: ["FeatherCore", "fncore"]),
     ]
 )
