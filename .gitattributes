@@ -1,0 +1,2 @@
+# Test fixtures must keep their exact bytes (CRLF, NFD and so on); never convert line endings.
+Packages/FeatherEditor/Tests/FeatherEditorTests/Fixtures/** -text
