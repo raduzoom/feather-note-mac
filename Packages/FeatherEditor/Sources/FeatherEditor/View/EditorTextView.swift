@@ -47,6 +47,10 @@ public final class EditorTextView: NSTextView, @preconcurrency NSTextStorageDele
     public var measure: CGFloat = 560
     public var minimumSideInset: CGFloat = 40
     private var isLoading = false
+    /// Pasted-image and scan files whose import hasn't finished yet.
+    private var temporaryFiles: [URL] = []
+
+    isolated deinit { cleanUpPastedFiles() }
     /// Bumped by every `load`, so work that finishes later can tell the note changed.
     private(set) var loadGeneration = 0
     /// Ranges waiting for an async insertion (an attachment import), moved by every edit.
@@ -487,7 +491,7 @@ extension EditorTextView {
             return (image.size.height * width / image.size.width).rounded()
         }
         imageCache.load(file) { [weak self] in
-            self?.restyleAll()
+            self?.restyleImages(matching: url)
             self?.needsDisplay = true
         }
         return Self.placeholderImageHeight
@@ -519,21 +523,77 @@ extension EditorTextView {
     /// Files first, then text, then image data: apps such as spreadsheets put a picture of the copied cells
     /// next to their text, and the text is what the person meant to paste.
     public override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
-        [.fileURL] + super.readablePasteboardTypes.filter { $0 != .png && $0 != .tiff } + [.png, .tiff]
+        // image data before PDF: Keynote, Pages, Numbers and Preview offer both for a copied picture; a
+        // Continuity Camera scan offers only the PDF
+        [.fileURL] + super.readablePasteboardTypes.filter { ![.png, .tiff, .pdf].contains($0) } + [.png, .tiff, .pdf]
+    }
+
+    /// Continuity Camera (Take Photo, Scan Documents, Add Sketch) delivers images or a PDF to the view that
+    /// accepts them; the result becomes an attachment like a dropped file.
+    public override func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?,
+                                        returnType: NSPasteboard.PasteboardType?) -> Any? {
+        if sendType == nil, let returnType, [.pdf, .png, .tiff, NSPasteboard.PasteboardType("public.jpeg")].contains(returnType) {
+            return self
+        }
+        return super.validRequestor(forSendType: sendType, returnType: returnType)
+    }
+
+    /// Restyles just the image blocks showing `url` (their reserved height changes when the image lands).
+    func restyleImages(matching url: String) {
+        let ranges = parser.document.blocks.compactMap { b -> NSRange? in
+            if case .image(_, let u, _) = b.kind, u == url { return b.range }
+            return nil
+        }
+        restyle(merging: ranges)
+    }
+
+    /// Removes temporary files made for pasted images and scans whose import never finished.
+    func cleanUpPastedFiles() {
+        for url in temporaryFiles { try? FileManager.default.removeItem(at: url) }
+        temporaryFiles.removeAll()
+    }
+
+    /// The right-click menu with Continuity Camera (Take Photo, Scan Documents, Add Sketch); macOS fills the item in.
+    public override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = super.menu(for: event) ?? NSMenu()
+        if !menu.items.contains(where: { $0.identifier == NSMenuItem.importFromDeviceIdentifier }) {
+            let item = NSMenuItem(title: "Import from iPhone or iPad", action: nil, keyEquivalent: "")
+            item.identifier = NSMenuItem.importFromDeviceIdentifier
+            menu.addItem(.separator())
+            menu.addItem(item)
+        }
+        return menu
+    }
+
+    /// "Scan 2026-11-09 10.42.pdf", local time.
+    static func scanFileName(at date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd HH.mm"
+        return "Scan \(f.string(from: date)).pdf"
     }
 
     /// Dropped or pasted files (and pasted image data) become attachments.
     public override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        var type = type
+        if type == .pdf, pboard.availableType(from: [.png, .tiff]) != nil { type = pboard.availableType(from: [.png, .tiff])! }
         var urls = (pboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL]) ?? []
+        var madeFiles: [URL] = []   // temporary files made here, removed once their import finishes
         let hasText = pboard.availableType(from: [.string]) != nil
+        if urls.isEmpty, !hasText, type == .pdf, let data = pboard.data(forType: .pdf) {
+            let folder = FileManager.default.temporaryDirectory.appending(path: "FeatherScan-\(UUID().uuidString)", directoryHint: .isDirectory)
+            let file = folder.appending(path: Self.scanFileName())
+            if (try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)) != nil,
+               (try? data.write(to: file)) != nil { urls = [file]; madeFiles = [folder] }
+        }
         if urls.isEmpty, !hasText, type == .png || type == .tiff, let data = pboard.data(forType: .png) ?? pboard.data(forType: .tiff),
            let rep = NSBitmapImageRep(data: data), let png = rep.representation(using: .png, properties: [:]) {
             let file = FileManager.default.temporaryDirectory.appending(path: "Pasted Image \(UUID().uuidString.prefix(4)).png")
-            if (try? png.write(to: file)) != nil { urls = [file] }
+            if (try? png.write(to: file)) != nil { urls = [file]; madeFiles = [file] }
         }
         guard !urls.isEmpty else {
             // image data next to text: paste the text
-            if hasText, type == .png || type == .tiff { return super.readSelection(from: pboard, type: .string) }
+            if hasText, type == .png || type == .tiff || type == .pdf { return super.readSelection(from: pboard, type: .string) }
             return super.readSelection(from: pboard, type: type)
         }
         // The import may take a while: keep the insertion point as an anchor that later edits move, and
@@ -543,8 +603,11 @@ extension EditorTextView {
         anchors[id] = selectedRange()
         let generation = loadGeneration
         let importer = importFiles
+        temporaryFiles += madeFiles
         Task { @MainActor [weak self] in
             let snippets = await importer(urls)
+            for f in madeFiles { try? FileManager.default.removeItem(at: f) }
+            self?.temporaryFiles.removeAll { madeFiles.contains($0) }
             guard let self, let range = anchors.removeValue(forKey: id), loadGeneration == generation else { return }
             let length = (string as NSString).length
             let start = min(range.location, length)
