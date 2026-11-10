@@ -93,6 +93,26 @@ TEST_RUNNER_FEATHER_SHOT_LIB=<seeded library dir> xcodebuild test -project Feath
 - Isolated runs (a test host, or any launch with `-FeatherLibraryPath`) use the `app.feathernote.FeatherNote.isolated` defaults suite, register no global shortcut and ignore `feathernote://` URLs, so tests never touch the real settings or a real capture.
 - Continuity Camera: `EditorTextView.validRequestor` accepts images and PDF; the Note menu gets an `NSMenuItem.importFromDeviceIdentifier` item, re-added whenever the menu bar opens (SwiftUI rebuilds its menus). Image data wins over a PDF flavour when both are offered.
 
+## FeatherSync and Feather Cloud (when changing sync, accounts or the Cloud screens)
+
+- The free app makes no network request until the user starts the trial, signs in or connects a server, or a sign-in is stored from an earlier launch. `CloudModel` builds no `APIClient` or `URLSession` before that; `freeAppMakesNoRequests` guards it.
+- Local edits reach sync only through FeatherCore's change log: `collectChanges()` turns rows into dirty `sync_items`. Remote changes are written with `Library.applyRemote*`, which never log, and which refuse (return false) when the item changed here since the engine looked; the engine then resolves again. Never write a remote change any other way.
+- `markPushed(…, ifDirtySeq:)` clears dirty state only if nothing changed after the snapshot. Push conflicts are left dirty and resolved during the pull, in seq order.
+- Conflict copies follow sync-protocol.md "Conflict resolution"; resolution always downloads the server's body (`forceBlob`), never trusts this Mac's `blob_sha`.
+- Secrets: the session token is in the Keychain service `app.feathernote.FeatherNote.session`, the master key in `app.feathernote.FeatherNote.master-key`, both keyed `"<server host>|<email>"`. Isolated runs and tests use in-memory stores (`CloudEnvironment.memory`, the default of `AppModel.open`).
+- Unit tests: `swift test --package-path Packages/FeatherSync --filter FeatherSyncTests`. Two-device tests against the local server (the target is not in the app's scheme):
+
+```bash
+(cd ../server && FEATHER_TRUST_PROXY=true FEATHER_BILLING=on docker compose -f deploy/docker-compose.yml up -d --build --wait)
+```
+
+```bash
+FEATHER_SYNC_SERVER=http://127.0.0.1:8420 swift test --package-path Packages/FeatherSync --filter FeatherSyncIntegrationTests
+```
+
+  They read verification codes from the server's log and give each account its own `X-Forwarded-For`. Prelogin, login and recover share 10 calls a minute per email.
+- Screens: render them with `TEST_RUNNER_FEATHER_SHOT_DIR=<dir> xcodebuild test … -only-testing:FeatherNoteTests/CloudScreensRender` and compare with `../universal/design/handoff/screens/desktop-onboarding-*`, `desktop-signin-*`, `desktop-settings-*`, `desktop-sync-status-*`. Copy comes from `../universal/design/ui-copy.md` word for word.
+
 ## FeatherImport (when changing an importer)
 
 - Every importer returns an `ImportBundle` (FeatherCore): notebooks, notes with `feather-import://<token>` attachment links, and a scratch folder of attachment files. `Library.importBundle` writes it in one transaction; cancelling the task or any error imports nothing, and the scratch folder is always removed.
