@@ -34,6 +34,7 @@ import Testing
     // I-2: signed out by the server: say so, keep the email, and never fall back to the trial pitch
     @Test func serverSignOutAsksToSignInAgain() async throws {
         let m = try await makeModel()
+        m.cloud.environment.hostedBillingEnabled = true   // the trial offer must not come back in place of sign-in
         let plan = CloudPlan(state: "active", reason: nil, trialEndsAt: nil, quotaBytes: 1, usedBytes: 0)
         let s = SignedIn(email: "ana@example.com", server: .hosted, deviceID: "D", libraryID: "01JC8ZN0AB1CD2EF3GH4JK5MN6",
                          account: CloudAccount(email: "ana@example.com", libraryID: "01JC8ZN0AB1CD2EF3GH4JK5MN6", plan: plan, billingEnabled: true))

@@ -75,14 +75,15 @@ enum CloudBanner: Equatable {
         }
     }
 
-    /// Self-hosted servers show none of these: their plans and limits are the owner's.
-    static func make(status: SyncStatus, plan: CloudPlan?, selfHosted: Bool, now: Date) -> CloudBanner? {
+    /// Self-hosted servers show none of these: their plans and limits are the owner's. Without billing there are
+    /// no plans, so no read-only or trial banners; Feather Cloud's storage still fills up, so those stay.
+    static func make(status: SyncStatus, plan: CloudPlan?, billingEnabled: Bool = true, selfHosted: Bool, now: Date) -> CloudBanner? {
         guard !selfHosted else { return nil }
-        if status == .readOnly || plan?.state == "read_only" { return .readOnly }
+        if billingEnabled, status == .readOnly || plan?.state == "read_only" { return .readOnly }
         if status == .quotaFull { return .storageFull }
         guard let plan else { return nil }
         if plan.quotaBytes > 0, plan.usedBytes * 10 >= plan.quotaBytes * 9 { return .storageNearlyFull(used: plan.usedBytes, quota: plan.quotaBytes) }
-        if plan.state == "trial", let ends = plan.trialEndsAt {
+        if billingEnabled, plan.state == "trial", let ends = plan.trialEndsAt {
             let days = Int(ceil(ends.timeIntervalSince(now) / 86_400))
             if days <= 3 { return .trialEnding(days: max(0, days)) }
         }

@@ -27,16 +27,15 @@ struct SyncSettingsView: View {
                     Label("1 GB during the trial", systemImage: "internaldrive")
                 }
                 .font(Theme.meta).foregroundStyle(Theme.textSecondary)
-                HStack(spacing: Spacing.s8) {
-                    Button("Start Free 14-Day Trial…") { open { cloud.startTrial() } }.buttonStyle(PrimaryButtonStyle())
-                    Button("Sign In…") { open { cloud.showSignIn() } }.buttonStyle(SecondaryButtonStyle())
-                }
+                actions
                 Text("Running your own server? Enter its address in Advanced.").font(Theme.meta).foregroundStyle(Theme.textSecondary)
             } else {
-                Text(selfHostedNote).font(Theme.meta).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: Spacing.s8) {
-                    Button("Create Account…") { open { cloud.startTrial() } }.buttonStyle(PrimaryButtonStyle())
-                    Button("Sign In…") { open { cloud.showSignIn() } }.buttonStyle(SecondaryButtonStyle())
+                if cloud.isSelfHosted {
+                    Text(selfHostedNote).font(Theme.meta).foregroundStyle(Theme.textSecondary).fixedSize(horizontal: false, vertical: true)
+                }
+                actions
+                if !cloud.isSelfHosted {
+                    Text("Running your own server? Enter its address in Advanced.").font(Theme.meta).foregroundStyle(Theme.textSecondary)
                 }
             }
         }
@@ -92,6 +91,14 @@ struct SyncSettingsView: View {
             }
         }
         .task { await cloud.refreshAccount() }
+    }
+
+    /// Create (trial or free) and Sign In, worded by CloudModel.signedOutActions.
+    private var actions: some View {
+        HStack(spacing: Spacing.s8) {
+            Button(cloud.signedOutActions[0]) { open { cloud.startTrial() } }.buttonStyle(PrimaryButtonStyle())
+            Button(cloud.signedOutActions[1]) { open { cloud.showSignIn() } }.buttonStyle(SecondaryButtonStyle())
+        }
     }
 
     private let selfHostedNote = "A self-hosted server may have different storage limits, and trial and plan details won't appear. Your notes are still encrypted on this device before upload."

@@ -13,7 +13,20 @@ import Testing
         #expect(throws: ServerURLError.insecure) { try CloudServer(userInput: "http://notes.example.com") }
         #expect(throws: ServerURLError.invalid) { try CloudServer(userInput: "") }
         #expect(throws: ServerURLError.invalid) { try CloudServer(userInput: "ftp://x.y") }
-        #expect(CloudServer.hosted.baseURL.absoluteString == "https://cloud.feathernote.app/v1")
+        #expect(CloudServer.hosted.baseURL.absoluteString == "https://feather-cloud.invalid/v1")
+    }
+
+    @Test func hostedComesFromInfoPlist() {
+        // the package test bundle has no FeatherCloudURL key: the fallback is used, and billing defaults to off
+        #expect(CloudServer.hosted.host.hasSuffix(".invalid"))
+        #expect(!CloudServer.hostedBillingEnabled)
+    }
+
+    @Test func hostedNeverFallsBackToARealDomain() { // review fix: a typo must not send accounts to someone else's domain
+        #expect(CloudServer.hosted(info: nil).host == "feather-cloud.invalid")
+        #expect(CloudServer.hosted(info: ["FeatherCloudURL": "https://bad host"]).host == "feather-cloud.invalid")
+        #expect(CloudServer.hosted(info: ["FeatherCloudURL": "http://cloud.example.app"]).host == "feather-cloud.invalid")
+        #expect(CloudServer.hosted(info: ["FeatherCloudURL": "https://cloud.example.app"]).host == "cloud.example.app")
     }
 
     @Test func errorsDecode() async throws {

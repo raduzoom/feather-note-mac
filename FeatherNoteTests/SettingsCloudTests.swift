@@ -59,6 +59,7 @@ final class SettingsServerProtocol: URLProtocol, @unchecked Sendable {
 
     @Test func signedOutShowsTrialOffer() async throws {
         let m = try await makeModel()
+        m.cloud.environment.hostedBillingEnabled = true   // a Feather Cloud with billing (after 1.0.0)
         #expect(m.cloud.offersTrial)
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [ServerInfoProtocol.self]

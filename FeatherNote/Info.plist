@@ -29,6 +29,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>FeatherCloudBilling</key>
+	<false/>
+	<key>FeatherCloudURL</key>
+	<string>https://CLOUD_DOMAIN</string>
 	<key>NSServices</key>
 	<array>
 		<dict>

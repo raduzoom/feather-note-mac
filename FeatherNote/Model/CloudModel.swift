@@ -12,6 +12,8 @@ struct CloudEnvironment {
     /// Built only when the app first needs the network.
     var configuration: () -> URLSessionConfiguration
     var deviceName: String
+    /// Whether Feather Cloud has billing, from the build (false in 1.0.0).
+    var hostedBillingEnabled = CloudServer.hostedBillingEnabled
 
     /// The Keychain normally; memory for test hosts and other isolated runs, which must never touch real secrets.
     static func live(isolated: Bool) -> CloudEnvironment {
@@ -91,8 +93,21 @@ final class CloudModel {
     private var statusTask: Task<Void, Never>?
 
     var hasAccountService: Bool { account != nil }
-    /// Signed out on Feather Cloud: Settings and the footer offer the free trial.
-    var offersTrial: Bool { state == .signedOut && !isSelfHosted && reauthEmail == nil }
+    /// Signed out on Feather Cloud with billing: Settings and the footer offer the free trial. Never on another
+    /// server, even one with billing: the trial terms are Feather Cloud's.
+    var offersTrial: Bool { state == .signedOut && !isSelfHosted && billingEnabled && reauthEmail == nil }
+
+    /// Whether this server has trials and plans. Signed in, the account says; signed out, the build says for
+    /// Feather Cloud and GET /server for another server. Off means: no trial, subscribe or plan screens.
+    var billingEnabled: Bool {
+        if let s = state.signedIn { return s.account.billingEnabled }
+        return isSelfHosted ? (serverInfo?.billingEnabled ?? false) : environment.hostedBillingEnabled
+    }
+
+    /// The two buttons Settings › Sync offers when signed out.
+    var signedOutActions: [String] {
+        [billingEnabled && !isSelfHosted ? "Start Free 14-Day Trial…" : isSelfHosted ? "Create Account…" : "Create Free Account…", "Sign In…"]
+    }
     /// A server other than Feather Cloud: trial and plan details don't apply.
     var isSelfHosted: Bool { server != .hosted }
 
@@ -152,7 +167,7 @@ final class CloudModel {
         guard await a.restore(email: email) else { return }
         let placeholder = CloudAccount(email: email, libraryID: libraryID,
                                        plan: CloudPlan(state: "active", reason: nil, trialEndsAt: nil, quotaBytes: 0, usedBytes: 0),
-                                       billingEnabled: !isSelfHosted)
+                                       billingEnabled: billingEnabled)
         state = .signedIn(SignedIn(email: email, server: server, deviceID: "", libraryID: libraryID, account: placeholder))
         startSync(libraryID: libraryID)
         Task { await refreshAccount() }

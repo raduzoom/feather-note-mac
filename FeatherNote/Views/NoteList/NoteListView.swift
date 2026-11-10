@@ -10,7 +10,7 @@ struct NoteListView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            if let banner = CloudBanner.make(status: model.cloud.status, plan: model.cloud.plan,
+            if let banner = CloudBanner.make(status: model.cloud.status, plan: model.cloud.plan, billingEnabled: model.cloud.billingEnabled,
                                              selfHosted: model.cloud.isSelfHosted, now: Date()) {
                 CloudBannerView(banner: banner)
             }

@@ -74,6 +74,13 @@ final class OnboardingFlow {
 
     var strength: PasswordStrength { PasswordStrength(password) }
 
+    /// Step 1's promises; a server without billing makes no trial or payment promise.
+    var introBullets: [String] {
+        cloud.billingEnabled && !cloud.isSelfHosted
+            ? ["Mac, iPhone, iPad, Windows and Android", "14 days free, no card. 1 GB during the trial.", "If you ever stop paying, nothing is deleted."]
+            : ["Mac, iPhone, iPad, Windows and Android", cloud.isSelfHosted ? "Stored on \(cloud.server.host)." : "Free during the first release."]
+    }
+
     var emailLooksValid: Bool {
         let parts = email.trimmingCharacters(in: .whitespaces).split(separator: "@")
         return parts.count == 2 && !parts[0].isEmpty && parts[1].contains(".")

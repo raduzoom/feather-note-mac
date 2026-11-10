@@ -29,9 +29,7 @@ struct OnboardingSheet: View {
         case 1:
             VStack(alignment: .leading, spacing: Spacing.s16) {
                 Text(AccountCopy.encryption).font(Theme.uiLabel).foregroundStyle(Theme.textBody)
-                bullet("Mac, iPhone, iPad, Windows and Android")
-                bullet("14 days free, no card. 1 GB during the trial.")
-                bullet("If you ever stop paying, nothing is deleted.")
+                ForEach(flow.introBullets, id: \.self) { bullet($0) }
                 Text("Takes about 2 minutes").font(Theme.meta).foregroundStyle(Theme.textSecondary)
             }
         case 2:

@@ -33,6 +33,10 @@ targets:
     info:
       path: FeatherNote/Info.plist
       properties:
+        # Feather Cloud's address and whether it has billing. Set CLOUD_DOMAIN once the domain is bought
+        # (server/docs/hosting-mac-mini.md); 1.0.0 runs it free, so billing is off.
+        FeatherCloudURL: https://CLOUD_DOMAIN
+        FeatherCloudBilling: false
         CFBundleURLTypes:
           - CFBundleURLName: app.feathernote.FeatherNote
             CFBundleURLSchemes: [feathernote]
