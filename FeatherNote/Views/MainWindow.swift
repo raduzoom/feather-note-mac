@@ -8,6 +8,12 @@ struct MainWindow: View {
     @Bindable var dialogs: Dialogs
     @State private var nameText = ""
 
+    /// `-FeatherImportFixture <path>`: UI tests start an import at launch.
+    static func importFixture(arguments: [String] = CommandLine.arguments) -> ImportSource? {
+        guard let i = arguments.firstIndex(of: "-FeatherImportFixture"), i + 1 < arguments.count else { return nil }
+        return ImportSource(url: URL(fileURLWithPath: arguments[i + 1]))
+    }
+
     var body: some View {
         NavigationSplitView {
             SidebarView(model: model, dialogs: dialogs)
@@ -25,6 +31,20 @@ struct MainWindow: View {
         .task {
             await model.load()
             model.startMaintenance()
+            if let fixture = Self.importFixture() { model.startImport(fixture) }
+        }
+        .sheet(isPresented: Binding(get: { model.showImportSource || model.importState != nil },
+                                    set: { if !$0 { model.showImportSource = false } })) {
+            ImportSheet(model: model).interactiveDismissDisabled()
+        }
+        // dropping an export (.enex, .zip or a folder) outside the editor imports it
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            guard model.importState == nil, let provider = providers.first else { return false }
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url, let source = ImportSource(url: url) else { return }
+                Task { @MainActor in model.startImport(source) }
+            }
+            return true
         }
         .alert(dialogs.name?.title ?? "", isPresented: Binding(get: { dialogs.name != nil }, set: { if !$0 { dialogs.name = nil } }),
                presenting: dialogs.name) { request in
@@ -63,21 +83,25 @@ struct MainWindow: View {
 struct EditorToolbar: ToolbarContent {
     let model: AppModel
     let dialogs: Dialogs
+    /// Room inside the glass pills, so labels don't touch their edges.
+    static let labelPadding: CGFloat = 6
 
     var body: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
             if let e = model.editor, !e.isTrashed {
                 Button { Task { await model.togglePin(e.id) } } label: {
                     Label(e.pinned ? "Pinned" : "Pin", systemImage: e.pinned ? "star.fill" : "star")
+                        .padding(.horizontal, Self.labelPadding)
                 }
                 .labelStyle(.titleAndIcon)
                 .help(e.pinned ? "Unpin Note (⇧⌘P)" : "Pin Note (⇧⌘P)")
-                TagsMenu(model: model, dialogs: dialogs, noteID: e.id)
+                TagsMenu(model: model, dialogs: dialogs, noteID: e.id, labelPadding: Self.labelPadding)
                     .help("Tags")
-                MoveMenu(model: model, noteID: e.id, title: "Move")
+                MoveMenu(model: model, noteID: e.id, title: "Move", labelPadding: Self.labelPadding)
                     .help("Move to a notebook")
                 Toggle(isOn: Binding(get: { model.editorMode == .raw }, set: { _ in model.toggleEditorMode() })) {
                     Label("Markdown", systemImage: "number")
+                        .padding(.horizontal, Self.labelPadding)
                 }
                 .toggleStyle(.button)
                 .labelStyle(.titleAndIcon)

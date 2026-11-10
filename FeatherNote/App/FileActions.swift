@@ -4,19 +4,10 @@ import FeatherCore
 /// Import and export through the system open panel.
 @MainActor
 enum FileActions {
+    /// File › Import Notes…: the import sheet's source picker (Evernote, Notion, Markdown folder).
     static func importNotes(model: AppModel, dialogs: Dialogs) {
-        let panel = NSOpenPanel()
-        panel.title = "Import Notes"
-        panel.message = "Choose a folder of Markdown (.md) files. Subfolders become notebooks."
-        panel.prompt = "Import"
-        panel.canChooseDirectories = true
-        panel.canChooseFiles = false
-        panel.allowsMultipleSelection = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        Task {
-            guard let report = await model.importMarkdownFolder(url) else { return }
-            dialogs.show(title: "Import finished", body: importSummary(report))
-        }
+        guard model.importState == nil else { return }
+        model.showImportSource = true
     }
 
     static func importSummary(_ r: ImportReport) -> String {

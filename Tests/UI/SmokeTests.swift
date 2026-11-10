@@ -25,6 +25,39 @@ final class SmokeTests: XCTestCase {
         XCTAssertTrue(app.windows["Feather Note"].waitForExistence(timeout: 10))
     }
 
+    /// Phase 5: Note › New Quick Note, type, ⌘↩, and the note is in the list.
+    func testQuickNoteSavesIntoNotebook() {
+        let app = launch()
+        XCTAssertTrue(app.windows["Feather Note"].waitForExistence(timeout: 10))
+        app.menuBars.menuBarItems["Note"].click()
+        app.menuItems["New Quick Note"].click()
+        let text = app.textViews["quick-note-text"]
+        XCTAssertTrue(text.waitForExistence(timeout: 5))
+        text.typeText("UI quick note")
+        app.typeKey(.return, modifierFlags: .command)
+        XCTAssertTrue(text.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(element(app, labelStartingWith: "UI quick note").waitForExistence(timeout: 5))
+    }
+
+    /// Phase 5: an Evernote import reaches the report, and Show Imported Notes opens the new notebook.
+    func testImportEnexShowsReport() throws {
+        let enex = FileManager.default.temporaryDirectory.appending(path: "FNUI-\(UUID().uuidString)/Road trip.enex")
+        try FileManager.default.createDirectory(at: enex.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("""
+        <?xml version="1.0" encoding="UTF-8"?><en-export>\
+        <note><title>Packing list</title><content><![CDATA[<en-note><div>Tent</div><table><tr><td>x</td></tr></table></en-note>]]></content></note>\
+        <note><title>Route</title><content><![CDATA[<en-note><div>North first</div></en-note>]]></content></note></en-export>
+        """.utf8).write(to: enex)
+        let app = launch(["-FeatherImportFixture", enex.path])
+        XCTAssertTrue(app.staticTexts["Import complete"].waitForExistence(timeout: 15))
+        let summary = app.staticTexts.matching(NSPredicate(format: "value BEGINSWITH %@ OR label BEGINSWITH %@", "Imported 2 notes", "Imported 2 notes")).firstMatch
+        XCTAssertTrue(summary.exists)
+        app.buttons["Show Imported Notes"].click()
+        XCTAssertTrue(app.staticTexts["Import complete"].waitForNonExistence(timeout: 5))
+        XCTAssertTrue(element(app, labelStartingWith: "Packing list").waitForExistence(timeout: 5))
+        XCTAssertTrue(element(app, labelStartingWith: "Road trip").exists)
+    }
+
     func testFirstLaunchShowsWelcome() {
         let app = launch()
         XCTAssertTrue(app.staticTexts["A quiet place to write."].waitForExistence(timeout: 10))

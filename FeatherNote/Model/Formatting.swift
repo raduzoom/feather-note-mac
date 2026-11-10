@@ -113,4 +113,33 @@ enum Formatting {
         if let notebookName { parts.append(notebookName) }
         return parts.joined(separator: ", ")
     }
+
+    // MARK: Import (boards desktop-import-progress, desktop-import-report)
+
+    /// "798 of 1,284 notes · 191 attachments"
+    static func importProgressLine(_ p: ImportProgress) -> String {
+        "\(p.notesDone.formatted()) of \(p.notesTotal.formatted()) notes · \(p.attachments.formatted()) \(p.attachments == 1 ? "attachment" : "attachments")"
+    }
+
+    /// "About 2 min left" from the rate so far; nil for the first 3 seconds.
+    static func timeLeft(done: Int, total: Int, elapsed: TimeInterval) -> String? {
+        guard elapsed >= 3, done > 0, total >= done else { return nil }
+        let remaining = elapsed / Double(done) * Double(total - done)
+        if remaining < 60 { return "Less than a minute left" }
+        return "About \(Int((remaining / 60).rounded())) min left"
+    }
+
+    /// "Imported 1,284 notes and 312 attachments. 6 notes contain content …"
+    static func importSummary(_ r: ImportReport) -> String {
+        func n(_ count: Int, _ one: String, _ many: String) -> String { "\(count.formatted()) \(count == 1 ? one : many)" }
+        var s = "Imported \(n(r.notes, "note", "notes")) and \(n(r.attachments, "attachment", "attachments"))."
+        let kept = Set(r.preserved.map(\.noteID)).count
+        if kept > 0 {
+            s += " \(n(kept, "note contains", "notes contain")) content Feather Note can't display yet (tables or HTML); it was kept as plain text."
+        }
+        if r.keptAsWritten > 0 {
+            s += " \(n(r.keptAsWritten, "link between notes was", "links between notes were")) kept as written."
+        }
+        return s
+    }
 }

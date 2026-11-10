@@ -202,14 +202,18 @@ struct MoveMenu: View {
     let model: AppModel
     let noteID: ULID
     var title = "Move To"
+    /// Horizontal padding inside the label (the toolbar's glass pills); 0 in menus.
+    var labelPadding: CGFloat = 0
 
     var body: some View {
-        Menu(title) {
+        Menu {
             Button("No Notebook") { Task { await model.move(noteID, to: nil) } }
             Divider()
             ForEach(flatten(NotebookNode.tree(model.notebooks), depth: 0), id: \.0.id) { nb, depth in
                 Button(String(repeating: "    ", count: depth) + nb.name) { Task { await model.move(noteID, to: nb.id) } }
             }
+        } label: {
+            Text(title).padding(.horizontal, labelPadding)
         }
     }
 
@@ -222,9 +226,11 @@ struct TagsMenu: View {
     let model: AppModel
     let dialogs: Dialogs
     let noteID: ULID
+    /// Horizontal padding inside the label (the toolbar's glass pills); 0 in menus.
+    var labelPadding: CGFloat = 0
 
     var body: some View {
-        Menu("Tags") {
+        Menu {
             let current = model.tagsByNote[noteID, default: []]
             ForEach(model.tags) { tag in
                 Toggle(tag.name, isOn: Binding(get: { current.contains(tag.id) },
@@ -238,6 +244,8 @@ struct TagsMenu: View {
                     await model.setTags(noteID, now.union([tag.id]))
                 }
             }
+        } label: {
+            Text("Tags").padding(.horizontal, labelPadding)
         }
     }
 }
