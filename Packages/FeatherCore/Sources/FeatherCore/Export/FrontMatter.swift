@@ -1,6 +1,6 @@
 import Foundation
 
-/// The YAML front matter Feather Note writes at the top of an exported note (data-model.md "Front matter").
+/// The YAML front matter FeatherMark writes at the top of an exported note (data-model.md "Front matter").
 struct FrontMatter: Equatable {
     init(featherID: ULID? = nil, title: String? = nil, created: Int64? = nil, modified: Int64? = nil, tags: [String]? = nil, pinned: Bool? = nil) {
         self.featherID = featherID; self.title = title; self.created = created; self.modified = modified; self.tags = tags; self.pinned = pinned

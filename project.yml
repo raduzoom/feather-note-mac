@@ -42,18 +42,18 @@ targets:
             CFBundleURLSchemes: [feathernote]
         NSServices:
           - NSMenuItem:
-              default: Save to Feather Note
+              default: Save to FeatherMark
             NSMessage: saveToFeatherNote
-            NSPortName: Feather Note
+            NSPortName: FeatherMark
             NSSendTypes: [public.utf8-plain-text, public.url, NSStringPboardType]
     settings:
       base:
-        PRODUCT_NAME: Feather Note
+        PRODUCT_NAME: FeatherMark
         PRODUCT_MODULE_NAME: FeatherNote
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         PRODUCT_BUNDLE_IDENTIFIER: app.feathernote.FeatherNote
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Feather Note
+        INFOPLIST_KEY_CFBundleDisplayName: FeatherMark
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
     dependencies:
       - package: FeatherCore
@@ -71,7 +71,7 @@ targets:
     info:
       path: ShareExtension/Info.plist
       properties:
-        CFBundleDisplayName: Feather Note
+        CFBundleDisplayName: FeatherMark
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
@@ -90,7 +90,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: app.feathernote.FeatherNote.Share
         PRODUCT_NAME: ShareExtension
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: Feather Note
+        INFOPLIST_KEY_CFBundleDisplayName: FeatherMark
     dependencies:
       - package: FeatherCore
   FeatherNoteTests:
@@ -101,7 +101,7 @@ targets:
       base:
         GENERATE_INFOPLIST_FILE: YES
         ENABLE_HARDENED_RUNTIME: NO
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Feather Note.app/Contents/MacOS/Feather Note"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/FeatherMark.app/Contents/MacOS/FeatherMark"
         BUNDLE_LOADER: "$(TEST_HOST)"
     dependencies:
       - target: FeatherNote

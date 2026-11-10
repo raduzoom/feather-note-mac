@@ -114,7 +114,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let host = NSHostingController(rootView: root)
         host.sceneBridgingOptions = [.toolbars, .title]
         let window = NSWindow(contentViewController: host)
-        window.title = "Feather Note"
+        window.title = "FeatherMark"
         window.identifier = NSUserInterfaceItemIdentifier("main")
         window.styleMask = [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView]
         window.toolbarStyle = .unified

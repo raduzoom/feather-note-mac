@@ -35,7 +35,7 @@ struct RecoveryKeyView: View {
     @MainActor static func savePDF(_ text: String) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
-        panel.nameFieldStringValue = "Feather Note recovery key.pdf"
+        panel.nameFieldStringValue = "FeatherMark recovery key.pdf"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         let view = page(text)
         try? view.dataWithPDF(inside: view.bounds).write(to: url)
@@ -49,7 +49,7 @@ struct RecoveryKeyCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.s16) {
             if printable {
-                Text("Feather Note recovery key").font(Theme.panelTitle)
+                Text("FeatherMark recovery key").font(Theme.panelTitle)
                 Text(AccountCopy.recoveryBody).font(Theme.uiLabel).fixedSize(horizontal: false, vertical: true)
             }
             Text(text)

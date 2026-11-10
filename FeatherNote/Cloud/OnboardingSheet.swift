@@ -108,7 +108,7 @@ private struct DoneStep: View {
                 }
             }
             Text("Next: add your other devices").font(Theme.uiLabelStrong)
-            Text("Install Feather Note on your iPhone, iPad, Windows PC or Android phone and sign in with \(email).")
+            Text("Install FeatherMark on your iPhone, iPad, Windows PC or Android phone and sign in with \(email).")
                 .font(Theme.uiLabel).foregroundStyle(Theme.textBody).fixedSize(horizontal: false, vertical: true)
         }
     }

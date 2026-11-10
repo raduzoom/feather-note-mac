@@ -1,6 +1,6 @@
-# Feather Note for Mac: agent rules
+# FeatherMark for Mac: agent rules
 
-Rules for AI agents in this repo. `CLAUDE.md` is a symlink to this file. The shared rules for all three Feather Note repos are in `../AGENTS.md`; global rules in `~/Dropbox/Configs/claude/AGENTS.md` still apply.
+Rules for AI agents in this repo. `CLAUDE.md` is a symlink to this file. The shared rules for all three FeatherMark repos are in `../AGENTS.md`; global rules in `~/Dropbox/Configs/claude/AGENTS.md` still apply.
 
 ## Build and test (before saying a change works)
 
@@ -13,7 +13,7 @@ xcodegen generate && xcodebuild test -project FeatherNote.xcodeproj -scheme Feat
 Release build and universal check:
 
 ```bash
-xcodebuild build -project FeatherNote.xcodeproj -scheme FeatherNote -configuration Release -derivedDataPath build -quiet && lipo -archs "build/Build/Products/Release/Feather Note.app/Contents/MacOS/Feather Note"
+xcodebuild build -project FeatherNote.xcodeproj -scheme FeatherNote -configuration Release -derivedDataPath build -quiet && lipo -archs "build/Build/Products/Release/FeatherMark.app/Contents/MacOS/FeatherMark"
 ```
 
 A single package: `swift test --package-path Packages/<Name>`.
@@ -45,13 +45,13 @@ Specs, crypto test vectors, designs and the roadmap live in the `universal` repo
 | Decision | Value |
 |---|---|
 | Bundle id prefix | `app.feathernote` (app: `app.feathernote.FeatherNote`) |
-| App product name | `Feather Note` |
+| App product name | `FeatherMark` (renamed from Feather Note, 2026-11-10; identifiers keep the old name: bundle id, Keychain services, `FeatherNote` module and scheme, repo name; `LibraryLocation` moves an old `Application Support/Feather Note` library once) |
 | Version | `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml` |
 | Minimum OS | macOS 15; Release builds are universal (arm64 + x86_64) |
 | Swift tests | Swift Testing (`import Testing`); XCTest only for UI tests |
 | Signing | Ad hoc locally, `CODE_SIGNING_ALLOWED=NO` in CI; Developer ID in Phase 10 |
 | Swift packages | One per module under `Packages/`; product, target and `<Name>Tests` names are fixed because `project.yml` refers to them |
-| License | MIT, copyright `The Feather Note authors` |
+| License | MIT, copyright `The FeatherMark authors` |
 
 ## The app (when changing anything under FeatherNote/)
 

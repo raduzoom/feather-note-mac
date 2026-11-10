@@ -135,7 +135,7 @@ enum Formatting {
         var s = "Imported \(n(r.notes, "note", "notes")) and \(n(r.attachments, "attachment", "attachments"))."
         let kept = Set(r.preserved.map(\.noteID)).count
         if kept > 0 {
-            s += " \(n(kept, "note contains", "notes contain")) content Feather Note can't display yet (tables or HTML); it was kept as plain text."
+            s += " \(n(kept, "note contains", "notes contain")) content FeatherMark can't display yet (tables or HTML); it was kept as plain text."
         }
         if r.keptAsWritten > 0 {
             s += " \(n(r.keptAsWritten, "link between notes was", "links between notes were")) kept as written."

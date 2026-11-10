@@ -14,7 +14,7 @@ final class ScreenshotTests: XCTestCase {
             let app = XCUIApplication()
             app.launchArguments = ["-FeatherLibraryPath", lib, "-FeatherColorScheme", scheme]
             app.launch()
-            let window = app.windows["Feather Note"]
+            let window = app.windows["FeatherMark"]
             XCTAssertTrue(window.waitForExistence(timeout: 10))
             func shot(_ name: String) throws {
                 sleep(1)

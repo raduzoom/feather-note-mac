@@ -22,13 +22,13 @@ final class SmokeTests: XCTestCase {
 
     func testAppLaunchesWithMainWindow() {
         let app = launch()
-        XCTAssertTrue(app.windows["Feather Note"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.windows["FeatherMark"].waitForExistence(timeout: 10))
     }
 
     /// Phase 5: Note › New Quick Note, type, ⌘↩, and the note is in the list.
     func testQuickNoteSavesIntoNotebook() {
         let app = launch()
-        XCTAssertTrue(app.windows["Feather Note"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.windows["FeatherMark"].waitForExistence(timeout: 10))
         let noteMenu = app.menuBars.menuBarItems["Note"]
         noteMenu.click()
         noteMenu.menuItems["New Quick Note"].click()   // the menu bar extra has one too
@@ -69,7 +69,7 @@ final class SmokeTests: XCTestCase {
     /// Roadmap Phase 3: create notebook, create note, search finds it, trash and restore.
     func testCreateSearchTrashRestore() {
         let app = launch()
-        XCTAssertTrue(app.windows["Feather Note"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.windows["FeatherMark"].waitForExistence(timeout: 10))
 
         app.typeKey("n", modifierFlags: [.command, .shift])
         XCTAssertTrue(app.buttons["Create"].waitForExistence(timeout: 5))
@@ -114,11 +114,11 @@ final class SmokeTests: XCTestCase {
     /// VoiceOver: every button in the window, toolbar included, has a label.
     func testEveryButtonHasALabel() {
         let app = launch()
-        XCTAssertTrue(app.windows["Feather Note"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.windows["FeatherMark"].waitForExistence(timeout: 10))
         app.typeKey("n", modifierFlags: .command)
         XCTAssertTrue(app.textViews["note-title"].waitForExistence(timeout: 5))
         app.typeText("Labelled")
-        let unlabeled = app.windows["Feather Note"].buttons.allElementsBoundByIndex
+        let unlabeled = app.windows["FeatherMark"].buttons.allElementsBoundByIndex
             .filter { !$0.identifier.hasPrefix("_XCUI:") }   // the window's own traffic-light buttons
             .filter { $0.label.isEmpty && $0.title.isEmpty }
         XCTAssertEqual(unlabeled.count, 0, unlabeled.map(\.debugDescription).joined(separator: "\n"))

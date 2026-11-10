@@ -1,7 +1,7 @@
 import AppKit
 import FeatherCore
 
-/// The Services menu entry "Save to Feather Note": selected text, or a URL, becomes a note in the quick-note notebook.
+/// The Services menu entry "Save to FeatherMark": selected text, or a URL, becomes a note in the quick-note notebook.
 /// The capture goes through the inbox, so it is never lost if saving fails.
 @MainActor
 final class ServicesProvider: NSObject {

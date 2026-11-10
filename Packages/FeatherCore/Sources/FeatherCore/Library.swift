@@ -1,6 +1,6 @@
 import Foundation
 
-/// A Feather Note library on disk: `library.sqlite` plus the `attachments/` folder.
+/// A FeatherMark library on disk: `library.sqlite` plus the `attachments/` folder.
 public actor Library {
     public nonisolated let id: ULID
     public nonisolated let directory: URL

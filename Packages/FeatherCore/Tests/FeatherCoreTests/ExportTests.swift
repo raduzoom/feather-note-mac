@@ -27,7 +27,7 @@ func specExampleLibrary() async throws -> (Library, Note) {
     let (lib, _) = try await specExampleLibrary()
     let dest = TestLibrary.directory()
     let report = try await lib.exportMarkdown(to: dest)
-    #expect(report.root.lastPathComponent == "Feather Note Export")
+    #expect(report.root.lastPathComponent == "FeatherMark Export")
     #expect(report.notes == 4 && report.notebooks == 3 && report.attachments == 2)
     #expect(try relativePaths(report.root) == [
         "Inbox.md", "Home", "Home/Groceries.md", "Home/_attachments", "Home/_attachments/Groceries",
@@ -95,8 +95,8 @@ func specExampleLibrary() async throws -> (Library, Note) {
     let dest = TestLibrary.directory()
     let first = try await lib.exportMarkdown(to: dest)
     let second = try await lib.exportMarkdown(to: dest)
-    #expect(first.root.lastPathComponent == "Feather Note Export")
-    #expect(second.root.lastPathComponent == "Feather Note Export (2)")
+    #expect(first.root.lastPathComponent == "FeatherMark Export")
+    #expect(second.root.lastPathComponent == "FeatherMark Export (2)")
 }
 
 @Test func exportOneNotebook() async throws {

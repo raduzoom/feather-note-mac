@@ -44,7 +44,7 @@ func makeENEX(notes count: Int, name: String = "Trip notes", truncate: Bool = fa
         guard case .finished(let report) = m.importState else { Issue.record("state \(String(describing: m.importState))"); return }
         #expect(report.notes == 3)
         #expect(report.preserved.map(\.kind) == [.table])
-        #expect(Formatting.importSummary(report) == "Imported 3 notes and 0 attachments. 1 note contains content Feather Note can't display yet (tables or HTML); it was kept as plain text.")
+        #expect(Formatting.importSummary(report) == "Imported 3 notes and 0 attachments. 1 note contains content FeatherMark can't display yet (tables or HTML); it was kept as plain text.")
         await m.showImportedNotes()
         #expect(m.selection == .notebook(try #require(report.topNotebookID)))
         #expect(m.notebooks.contains { $0.name == "Trip notes" })

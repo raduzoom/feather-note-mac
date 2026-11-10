@@ -1,6 +1,6 @@
 import AppKit
 
-/// The menu bar extra (board `desktop-menu-bar`): New Quick Note, Open Feather Note, a status line, Quit.
+/// The menu bar extra (board `desktop-menu-bar`): New Quick Note, Open FeatherMark, a status line, Quit.
 /// "Sync with Feather Cloud…" joins it in Phase 8.
 @MainActor
 final class MenuBarController: NSObject, NSMenuDelegate {
@@ -13,7 +13,7 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         self.model = model
         self.openMain = openMain
         super.init()
-        item.button?.image = NSImage(systemSymbolName: "pencil.tip", accessibilityDescription: "Feather Note")
+        item.button?.image = NSImage(systemSymbolName: "pencil.tip", accessibilityDescription: "FeatherMark")
         item.button?.setAccessibilityIdentifier("feather-menu-bar")
         let menu = NSMenu()
         menu.delegate = self
@@ -21,14 +21,14 @@ final class MenuBarController: NSObject, NSMenuDelegate {
         quick.keyEquivalentModifierMask = [.command, .option]
         quick.target = self
         menu.addItem(quick)
-        let open = NSMenuItem(title: "Open Feather Note", action: #selector(openApp), keyEquivalent: "")
+        let open = NSMenuItem(title: "Open FeatherMark", action: #selector(openApp), keyEquivalent: "")
         open.target = self
         menu.addItem(open)
         menu.addItem(.separator())
         status.isEnabled = false
         menu.addItem(status)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit Feather Note", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        menu.addItem(NSMenuItem(title: "Quit FeatherMark", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         item.menu = menu
         updateStatus()
     }

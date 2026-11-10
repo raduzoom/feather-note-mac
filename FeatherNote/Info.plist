@@ -39,12 +39,12 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Save to Feather Note</string>
+				<string>Save to FeatherMark</string>
 			</dict>
 			<key>NSMessage</key>
 			<string>saveToFeatherNote</string>
 			<key>NSPortName</key>
-			<string>Feather Note</string>
+			<string>FeatherMark</string>
 			<key>NSSendTypes</key>
 			<array>
 				<string>public.utf8-plain-text</string>

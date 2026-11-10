@@ -1,10 +1,10 @@
-# Feather Note for Mac
+# FeatherMark for Mac
 
 A free, native, lightweight Markdown note app for macOS 15 and later. Notes stay on your Mac in a local library and export to a plain Markdown folder at any time. Optional Feather Cloud sync is end-to-end encrypted.
 
 ## Running
 
-Open the generated project in Xcode and run the FeatherNote scheme, or build from the command line (below). The library lives in `~/Library/Application Support/Feather Note/`.
+Open the generated project in Xcode and run the FeatherNote scheme, or build from the command line (below). The library lives in `~/Library/Application Support/FeatherMark/`.
 
 ## Building
 
@@ -30,4 +30,4 @@ MIT, see [LICENSE](LICENSE).
 
 ## Trademark
 
-The name Feather Note stays with the author. Forks must use a different name.
+The name FeatherMark stays with the author. Forks must use a different name.

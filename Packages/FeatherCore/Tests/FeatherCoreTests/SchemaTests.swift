@@ -19,7 +19,7 @@ private func pragma(_ name: String, at dir: URL) throws -> String {
 }
 
 @Test func openCreatesMissingDirectory() throws {
-    let dir = TestLibrary.directory().appending(path: "nested/Feather Note")
+    let dir = TestLibrary.directory().appending(path: "nested/FeatherMark")
     _ = try Library.open(at: dir)
     #expect(FileManager.default.fileExists(atPath: dir.appending(path: "library.sqlite").path))
 }

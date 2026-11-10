@@ -55,7 +55,7 @@ func runFncore(_ args: [String], stdin: String = "") throws -> RunResult {
     let export = try runFncore(["export", dir.path, dest.path])
     #expect(export.status == 0, "\(export.stderr)")
     let files = try FileManager.default.subpathsOfDirectory(atPath: dest.path).filter { $0.hasSuffix(".md") }
-    #expect(files == ["Feather Note Export/Home/Station.md"])
+    #expect(files == ["FeatherMark Export/Home/Station.md"])
     let src = TestLibrary.directory()
     try Data("imported".utf8).write(to: src.appending(path: "x.md"))
     let imp = try runFncore(["import", dir.path, src.path])

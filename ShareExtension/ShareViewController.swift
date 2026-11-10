@@ -2,13 +2,13 @@ import AppKit
 import FeatherCore
 import UniformTypeIdentifiers
 
-/// Share › Feather Note: saves the shared text, URL (with its title) or files as a note.
+/// Share › FeatherMark: saves the shared text, URL (with its title) or files as a note.
 /// The capture goes to the app through `InboxHandOff`; the app files it into the quick-note notebook.
 final class ShareViewController: NSViewController {
     private let status = NSTextField(labelWithString: "")
 
     override func loadView() {
-        let title = NSTextField(labelWithString: "Save to Feather Note")
+        let title = NSTextField(labelWithString: "Save to FeatherMark")
         title.font = .systemFont(ofSize: 13, weight: .semibold)
         status.textColor = .secondaryLabelColor
         status.lineBreakMode = .byTruncatingTail

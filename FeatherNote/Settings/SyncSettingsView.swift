@@ -106,7 +106,7 @@ struct SyncSettingsView: View {
     /// The account sheets belong to the main window.
     private func open(_ show: () -> Void) {
         show()
-        NSApp.windows.first { $0.title == "Feather Note" }?.makeKeyAndOrderFront(nil)
+        NSApp.windows.first { $0.title == "FeatherMark" }?.makeKeyAndOrderFront(nil)
     }
 
     private func confirmSignOut() {

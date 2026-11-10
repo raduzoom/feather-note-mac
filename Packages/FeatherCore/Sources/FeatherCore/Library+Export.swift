@@ -24,7 +24,7 @@ extension Library {
             guard let nb = all.first(where: { $0.id == notebookID }) else { throw LibraryError.notFound(notebookID) }
             rootName = FileNames.sanitize(nb.name)
         } else {
-            rootName = "Feather Note Export"
+            rootName = "FeatherMark Export"
         }
         var existing = Set(((try? fm.contentsOfDirectory(atPath: destination.path)) ?? []).map(FileNames.key))
         let root = destination.appending(path: FileNames.unique(rootName, ext: "", taken: &existing), directoryHint: .isDirectory)

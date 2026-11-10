@@ -1,4 +1,4 @@
-/// FeatherCore: the local Feather Note library.
+/// FeatherCore: the local FeatherMark library.
 ///
 /// Open one with `Library.open(at:)`. It keeps notes, notebooks, tags and attachments in SQLite (WAL, FTS5),
 /// writes a change-log row in the same transaction as every change, and exports to and imports from

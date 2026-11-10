@@ -666,7 +666,7 @@ final class AppModel {
         case .notebookCycle: "A notebook can't go inside its own sub-notebook."
         case .invalidName: "Names can't be empty."
         case .notFound: "That item no longer exists."
-        case .newerSchema: "This library was made by a newer Feather Note. Update the app to open it."
+        case .newerSchema: "This library was made by a newer FeatherMark. Update the app to open it."
         }
     }
 }

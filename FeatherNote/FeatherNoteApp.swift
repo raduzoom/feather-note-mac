@@ -31,8 +31,8 @@ struct LibraryOpenFailure: View {
 
     private var message: String {
         if case LibraryError.newerSchema = error {
-            return "This library was made by a newer Feather Note. Update the app to open it."
+            return "This library was made by a newer FeatherMark. Update the app to open it."
         }
-        return "Feather Note couldn't open your library.\n\(error.localizedDescription)"
+        return "FeatherMark couldn't open your library.\n\(error.localizedDescription)"
     }
 }
