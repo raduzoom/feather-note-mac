@@ -60,6 +60,7 @@ Specs, crypto test vectors, designs and the roadmap live in the `universal` repo
 - The text views (FeatherEditor's `EditorTextView`, `TitleEditor`) must keep every macOS substitution off (`applyNoSubstitutions()` / `disableSubstitutions()`); `editorTextViewHasNoSubstitutions` guards it.
 - Never let SwiftUI measure a view with `.fixedSize(vertical:)` or an unbounded height: during min-size probing at near-zero widths it reports a huge height and the whole window content shifts upward.
 - Launch arguments for tests only: `-FeatherLibraryPath <dir>` (never touch the real library) and `-FeatherColorScheme light|dark`. A unit-test host run always uses a temporary library.
+- `-FeatherImportFixture <path>` (UI tests only) starts an import of that `.enex`, `.zip` or folder at launch.
 - UI tests drive the screen. The first run may ask once to let Xcode control the computer. Screenshots of the designed screens, compared with `../universal/design/handoff/screens/`:
 
 ```bash
@@ -82,6 +83,24 @@ TEST_RUNNER_FEATHER_SHOT_LIB=<seeded library dir> xcodebuild test -project Feath
 - Performance gate (release; debug only catches large regressions): `swift test -c release --package-path Packages/FeatherEditor --filter PerformanceTests`. Budgets (the benchmark warms AppKit up first, as the app does at launch): open a 50k-word note < 150 ms, keystroke median < 4 ms and p99 < 16 ms, hostile inputs < 1 s. `timeout`/`alarm` around `swift test` leaves `swiftpm-testing-helper` running: `pkill -f swiftpm-testing-helper` afterwards.
 - Screenshots of the editor without UI automation: `FEATHER_SHOT_DIR=<dir> swift test --package-path Packages/FeatherEditor --filter RenderShotsTests`, then compare with `../universal/design/handoff/screens/desktop-editor-*`.
 - To add a corpus file: drop a `.md` file into `Packages/FeatherEditor/Tests/FeatherEditorTests/Fixtures/corpus/`. Every corpus test (round trip, incremental-vs-full parse, nesting limit untouched) picks it up.
+
+## Capture (when changing quick note, Services, the Share extension or scans)
+
+- Everything captured from outside the editor is an `InboxItem` (FeatherCore `Inbox.swift`) in `<library>/Inbox/<id>/`. The item id becomes the note id, so capturing twice makes one note, and a folder is removed only after its note commits. `CaptureText.split`: first line (≤ 100 characters) is the title, and nothing is dropped.
+- The Share extension is sandboxed and ad-hoc signed, so it can't share an App Group container without a prompt. Each capture goes on its own pasteboard, `app.feathernote.inbox.<id>`, and the extension opens `feathernote://inbox?id=<id>`; the app collects it (`InboxHandOff`, compiled into both targets). Switch to an App Group container with Developer ID (Phase 10).
+- The global shortcut uses Carbon `RegisterEventHotKey` with `kEventHotKeyExclusive`. A clash with another app's ordinary registration can't be detected; Settings reports macOS's own shortcuts (`HotKey.systemShortcuts()`) and says so.
+- Isolated runs (a test host, or any launch with `-FeatherLibraryPath`) use the `app.feathernote.FeatherNote.isolated` defaults suite, register no global shortcut and ignore `feathernote://` URLs, so tests never touch the real settings or a real capture.
+- Continuity Camera: `EditorTextView.validRequestor` accepts images and PDF; the Note menu gets an `NSMenuItem.importFromDeviceIdentifier` item, re-added whenever the menu bar opens (SwiftUI rebuilds its menus). Image data wins over a PDF flavour when both are offered.
+
+## FeatherImport (when changing an importer)
+
+- Every importer returns an `ImportBundle` (FeatherCore): notebooks, notes with `feather-import://<token>` attachment links, and a scratch folder of attachment files. `Library.importBundle` writes it in one transaction; cancelling the task or any error imports nothing, and the scratch folder is always removed.
+- The mapping rules are `../universal/specs/import-formats.md`. Change the spec first, then the code, so other platforms import the same way.
+- `ENEXReader`: `ResourceExtractor` decodes every `<data>` (outside CDATA) to a file in a byte-level pre-pass, with an `autoreleasepool` per chunk, and `XMLParser` reads a small skeleton. ENML is converted after the ENEX parse, because `NSXMLParser` can't run inside another parser's callback.
+- `NotionReader` unzips with `/usr/bin/ditto` (multi-part exports included). Tests build Notion-style exports at runtime (`NotionFixture`), not committed folders.
+- Real exports hold personal data: keep them out of every repo. Run them with `FEATHER_REAL_EXPORTS=<folder> swift test --package-path Packages/FeatherImport --filter realExportsImportCompletely` (prints counts only).
+- Performance gate (release): `swift test -c release --package-path Packages/FeatherImport --filter ImportPerformanceTests`, 5,000 notes and 500 images under 15 s.
+- To add an ENEX fixture: put it in `Packages/FeatherImport/Tests/FeatherImportTests/Fixtures/enex/`; generate base64 and MD5 with a script, never by hand.
 
 ## FeatherCore (when changing the library code)
 
