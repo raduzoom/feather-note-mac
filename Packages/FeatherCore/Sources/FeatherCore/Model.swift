@@ -14,6 +14,14 @@ public struct Notebook: Sendable, Equatable, Identifiable {
     public var parentID: ULID?
     public var created: Int64
     public var modified: Int64
+
+    public init(id: ULID, name: String, parentID: ULID?, created: Int64, modified: Int64) {
+        self.id = id
+        self.name = name
+        self.parentID = parentID
+        self.created = created
+        self.modified = modified
+    }
 }
 
 public struct Tag: Sendable, Equatable, Identifiable {
@@ -21,6 +29,13 @@ public struct Tag: Sendable, Equatable, Identifiable {
     public var name: String
     public var created: Int64
     public var modified: Int64
+
+    public init(id: ULID, name: String, created: Int64, modified: Int64) {
+        self.id = id
+        self.name = name
+        self.created = created
+        self.modified = modified
+    }
 }
 
 public struct ChangeLogEntry: Sendable, Equatable {
@@ -43,6 +58,19 @@ public struct Note: Sendable, Equatable, Identifiable {
     /// Last change to title or body.
     public var modified: Int64
     public var trashedAt: Int64?
+
+    public init(id: ULID, title: String, body: String, notebookID: ULID?, tagIDs: Set<ULID>, pinned: Bool, created: Int64,
+                modified: Int64, trashedAt: Int64?) {
+        self.id = id
+        self.title = title
+        self.body = body
+        self.notebookID = notebookID
+        self.tagIDs = tagIDs
+        self.pinned = pinned
+        self.created = created
+        self.modified = modified
+        self.trashedAt = trashedAt
+    }
 }
 
 /// A note as shown in a list: no full body.
@@ -83,6 +111,15 @@ public struct Attachment: Sendable, Equatable, Identifiable {
     /// SHA-256 of the content, lowercase hex.
     public var sha256: String
     public var created: Int64
+
+    public init(id: ULID, filename: String, mime: String, size: Int64, sha256: String, created: Int64) {
+        self.id = id
+        self.filename = filename
+        self.mime = mime
+        self.size = size
+        self.sha256 = sha256
+        self.created = created
+    }
 }
 
 public struct SearchHit: Sendable, Equatable {

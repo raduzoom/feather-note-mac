@@ -1,5 +1,5 @@
 enum Schema {
-    static let version = 2
+    static let version = 3
 
     /// Migration `i` takes the database from version `i` to `i + 1`.
     static let migrations: [String] = [
@@ -48,6 +48,19 @@ enum Schema {
         // v2: counts and list filters read only this index, never the note rows with their bodies.
         """
         CREATE INDEX notes_state ON notes(trashed_at, pinned, notebook_id);
+        """,
+        // v3: Feather Cloud sync bookkeeping (Phase 8). Local edits stay in change_log; collectChanges() turns
+        // them into dirty rows here, and remote changes are written without logging.
+        """
+        CREATE TABLE sync_items (
+          item_id TEXT PRIMARY KEY, item_type TEXT NOT NULL, server_version INTEGER NOT NULL DEFAULT 0,
+          dirty_seq INTEGER, body_dirty INTEGER NOT NULL DEFAULT 0, deleted INTEGER NOT NULL DEFAULT 0,
+          blob_sha TEXT, extra_meta TEXT, meta_version INTEGER NOT NULL DEFAULT 1) WITHOUT ROWID;
+        CREATE INDEX sync_items_dirty ON sync_items(dirty_seq) WHERE dirty_seq IS NOT NULL;
+        CREATE TABLE sync_state (key TEXT PRIMARY KEY, value TEXT NOT NULL) WITHOUT ROWID;
+        CREATE TABLE sync_conflicts (
+          id INTEGER PRIMARY KEY, item_id TEXT NOT NULL, item_type TEXT NOT NULL, lost_name TEXT NOT NULL,
+          device TEXT NOT NULL, at INTEGER NOT NULL);
         """,
     ]
 
