@@ -103,6 +103,14 @@ TEST_RUNNER_FEATHER_SHOT_LIB=<seeded library dir> xcodebuild test -project Feath
 - Performance gate (release): `swift test -c release --package-path Packages/FeatherImport --filter ImportPerformanceTests`, 5,000 notes and 500 images under 15 s.
 - To add an ENEX fixture: put it in `Packages/FeatherImport/Tests/FeatherImportTests/Fixtures/enex/`; generate base64 and MD5 with a script, never by hand.
 
+## FeatherCrypto (when changing crypto)
+
+- `../universal/specs/crypto.md` is normative. A change to an algorithm, parameter, label or byte layout goes there first, with regenerated test vectors and a bumped version marker.
+- The tests read `../universal/test-vectors/` (or the folder in `FEATHER_TEST_VECTORS`) and fail when it's missing; never copy vector values into code.
+- `Sodium.swift` is the only file that calls libsodium (swift-sodium's `Clibsodium`, pinned to 0.9.1). Functions that use randomness have an internal overload taking the nonce or salt, for the vectors.
+- Data from a server, a file or the user fails with one of `CryptoError`'s three kinds; a caller's bad argument throws `InvalidArgument` before any crypto runs. Only the v1 Argon2id parameters are accepted.
+- The master key is stored by `KeychainMasterKeyStore` in the file-based keychain, this Mac only; switch to the data protection keychain with Developer ID (Phase 10). Tests use their own service name or `InMemoryMasterKeyStore`.
+
 ## FeatherCore (when changing the library code)
 
 - Every mutation goes through `Library.write`, which wraps it in one transaction together with its change-log rows. A `write` inside another `write` joins the outer transaction (import relies on this). Never write to the database outside `write`.
