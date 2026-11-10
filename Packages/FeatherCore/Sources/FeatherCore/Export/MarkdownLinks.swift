@@ -2,7 +2,96 @@
 /// A scanner for the cases import needs, not a CommonMark parser.
 enum MarkdownLinks {
     static func destinations(in body: String) -> [(range: Range<String.Index>, destination: String)] {
-        var out: [(range: Range<String.Index>, destination: String)] = []
+        proseLines(body).flatMap(inlineDestinations(in:))
+    }
+
+    /// Obsidian and Bear constructs outside code (Phase 5, import-formats.md "Markdown folder").
+    enum VaultReference {
+        /// `![[name]]` or `![[name|alias]]`; `range` covers the whole embed.
+        case embed(range: Range<String.Index>, name: String, alias: String?)
+        /// `[[note]]`: kept as written.
+        case wikiLink(range: Range<String.Index>)
+        /// `[ref]: destination`; `range` covers the destination.
+        case referenceDefinition(range: Range<String.Index>, destination: String)
+        /// `<img src="…">`; `range` covers the src value.
+        case htmlImage(range: Range<String.Index>, source: String)
+    }
+
+    static func vaultReferences(in body: String) -> [VaultReference] {
+        var out: [VaultReference] = []
+        for line in proseLines(body) {
+            let content = line.drop(while: { $0 == " " })
+            if line.distance(from: line.startIndex, to: content.startIndex) <= 3, content.first == "[",
+               let close = content.firstIndex(of: "]"), content.index(after: close) < content.endIndex,
+               content[content.index(after: close)] == ":" {
+                var i = content.index(close, offsetBy: 2)
+                while i < content.endIndex, content[i] == " " || content[i] == "\t" { i = content.index(after: i) }
+                if i < content.endIndex {
+                    var end = i
+                    if content[i] == "<", let gt = content[i...].firstIndex(of: ">") {
+                        i = content.index(after: i); end = gt
+                    } else {
+                        while end < content.endIndex, !content[end].isWhitespace { end = content.index(after: end) }
+                    }
+                    if i < end { out.append(.referenceDefinition(range: i..<end, destination: String(content[i..<end]))) }
+                }
+                continue
+            }
+            out += inlineVaultReferences(in: line)
+        }
+        return out
+    }
+
+    private static func inlineVaultReferences(in line: Substring) -> [VaultReference] {
+        var out: [VaultReference] = []
+        var i = line.startIndex
+        while i < line.endIndex {
+            let c = line[i]
+            if c == "\\" {
+                i = line.index(after: i)
+                if i < line.endIndex { i = line.index(after: i) }
+                continue
+            }
+            if c == "`" {
+                let n = run(of: "`", in: line[i...])
+                let afterOpen = line.index(i, offsetBy: n)
+                i = closingBackticks(n, in: line[afterOpen...]) ?? afterOpen
+                continue
+            }
+            let rest = line[i...]
+            if rest.hasPrefix("![["), let close = rest.range(of: "]]") {
+                let inner = rest[rest.index(i, offsetBy: 3)..<close.lowerBound]
+                let parts = inner.split(separator: "|", maxSplits: 1).map { String($0) }
+                if let name = parts.first, !name.isEmpty {
+                    out.append(.embed(range: i..<close.upperBound, name: name, alias: parts.count > 1 ? parts[1] : nil))
+                }
+                i = close.upperBound
+                continue
+            }
+            if rest.hasPrefix("[["), let close = rest.range(of: "]]") {
+                out.append(.wikiLink(range: i..<close.upperBound))
+                i = close.upperBound
+                continue
+            }
+            if rest.lowercased().hasPrefix("<img"), let end = rest.firstIndex(of: ">") {
+                let tag = rest[i..<end]
+                if let src = tag.range(of: #"\bsrc\s*=\s*"([^"]*)""#, options: [.regularExpression, .caseInsensitive]),
+                   let q1 = tag[src].firstIndex(of: "\"") {
+                    let valueStart = tag.index(after: q1)
+                    let valueEnd = tag.index(before: src.upperBound)
+                    out.append(.htmlImage(range: valueStart..<valueEnd, source: String(tag[valueStart..<valueEnd])))
+                }
+                i = end
+                continue
+            }
+            i = line.index(after: i)
+        }
+        return out
+    }
+
+    /// The lines of `body` that are prose: not in fenced or indented code.
+    private static func proseLines(_ body: String) -> [Substring] {
+        var out: [Substring] = []
         var fence: (char: Character, count: Int)?
         var previousBlank = true
         var inIndentedCode = false
@@ -39,7 +128,7 @@ enum MarkdownLinks {
             inIndentedCode = false
             previousBlank = false
             if isListItem(content) { inList = true } else if indent == 0 { inList = false }
-            out += inlineDestinations(in: line)
+            out.append(line)
         }
         return out
     }

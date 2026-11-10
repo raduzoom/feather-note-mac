@@ -212,3 +212,51 @@ private func write(_ data: Data, _ path: String, in root: URL) throws {
         #expect(Set(b.tagIDs.compactMap { newTags[$0] }) == Set(a.tagIDs.compactMap { oldTags[$0] }))
     }
 }
+
+// MARK: Markdown vaults (Phase 5 Task 12): Obsidian and Bear constructs
+
+private func importOne(_ body: String, files: [String: Data] = [:]) async throws -> (Note, ImportReport, Library) {
+    let src = TestLibrary.directory()
+    try write(body, "Vault/Note.md", in: src)
+    for (path, data) in files { try write(data, path, in: src) }
+    let lib = try TestLibrary.open()
+    let report = try await lib.importMarkdownFolder(from: src.appending(path: "Vault"))
+    let s = try #require(try await lib.notes(in: .all).first { $0.title == "Note" })
+    return (try #require(try await lib.note(s.id)), report, lib)
+}
+
+private let png = Data([0x89, 0x50, 0x4E, 0x47])
+
+@Test func wikiEmbedImageBecomesAttachment() async throws {
+    let (note, report, _) = try await importOne("Look: ![[shot.png]] here", files: ["Vault/assets/shot.png": png])
+    #expect(note.body.range(of: #"^Look: !\[shot\.png\]\(feather://attachment/[0-9A-Z]{26}\) here$"#, options: .regularExpression) != nil, "\(note.body)")
+    #expect(report.attachments == 1 && report.keptAsWritten == 0)
+}
+
+@Test func wikiEmbedAlias() async throws {
+    let (note, _, _) = try await importOne("![[doc|The doc]] and ![[Doc.PDF]]", files: ["Vault/files/doc.pdf": Data([1, 2])])
+    #expect(note.body.range(of: #"^\[The doc\]\(feather://attachment/([0-9A-Z]{26})\) and \[Doc\.PDF\]\(feather://attachment/\1\)$"#, options: .regularExpression) != nil, "\(note.body)")
+}
+
+@Test func wikiNoteLinkKept() async throws {
+    let (note, report, _) = try await importOne("See [[Other note]] and ![[Other note.md]] and ![[missing.png]]", files: ["Vault/Other note.md": Data("x".utf8)])
+    #expect(note.body == "See [[Other note]] and ![[Other note.md]] and ![[missing.png]]")
+    #expect(report.keptAsWritten == 3)
+}
+
+@Test func referenceDefinitionRewritten() async throws {
+    let (note, _, _) = try await importOne("A [receipt][r].\n\n[r]: files/bill%201.pdf \"Bill\"", files: ["Vault/files/bill 1.pdf": Data([3])])
+    #expect(note.body.range(of: #"\n\[r\]: feather://attachment/[0-9A-Z]{26} "Bill"$"#, options: .regularExpression) != nil, "\(note.body)")
+}
+
+@Test func htmlImgRewritten() async throws {
+    let (note, _, _) = try await importOne("<img src=\"assets/shot.png\" width=\"200\">", files: ["Vault/assets/shot.png": png])
+    #expect(note.body.range(of: #"^<img src="feather://attachment/[0-9A-Z]{26}" width="200">$"#, options: .regularExpression) != nil, "\(note.body)")
+}
+
+@Test func wikiEmbedInCodeUntouched() async throws {
+    let body = "`![[shot.png]]`\n\n```\n![[shot.png]]\n<img src=\"assets/shot.png\">\n```"
+    let (note, report, _) = try await importOne(body, files: ["Vault/assets/shot.png": png])
+    #expect(note.body == body)
+    #expect(report.keptAsWritten == 0)
+}

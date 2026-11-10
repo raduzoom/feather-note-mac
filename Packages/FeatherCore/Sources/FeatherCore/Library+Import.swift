@@ -5,6 +5,12 @@ public struct ImportReport: Sendable, Equatable {
     public var notebooks: Int
     public var attachments: Int
     public var skipped: [Skipped]
+    /// Notes holding content kept verbatim (tables, HTML, encrypted blocks, Notion blocks).
+    public var preserved: [PreservedContent] = []
+    /// Links between notes left as written (note links come in a point release).
+    public var keptAsWritten = 0
+    /// The single top notebook the import created, if there is one ("Show Imported Notes").
+    public var topNotebookID: ULID?
 
     public struct Skipped: Sendable, Equatable {
         public var path: String
@@ -50,7 +56,63 @@ extension Library {
                 return target
             }
 
+            func attachmentID(for target: URL) throws -> ULID {
+                if let known = attachmentIDs[target.path] { return known }
+                let id = try addAttachment(contentsOf: target).id
+                attachmentIDs[target.path] = id
+                return id
+            }
+
+            /// Every non-Markdown file in the folder by lowercased name, with and without its extension.
+            var fileIndex: [String: [URL]]?
+            func filesNamed(_ name: String) -> [URL] {
+                if fileIndex == nil {
+                    var index: [String: [URL]] = [:]
+                    let e = fm.enumerator(at: root, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles])
+                    while let u = e?.nextObject() as? URL {
+                        guard (try? u.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true,
+                              u.pathExtension.lowercased() != "md" else { continue }
+                        let file = u.standardizedFileURL.resolvingSymlinksInPath()
+                        index[file.lastPathComponent.lowercased(), default: []].append(file)
+                        index[file.deletingPathExtension().lastPathComponent.lowercased(), default: []].append(file)
+                    }
+                    fileIndex = index
+                }
+                return fileIndex?[name.lowercased()] ?? []
+            }
+
+            /// Obsidian/Bear: `![[file]]` embeds, reference definitions and `<img src>` to files in the folder.
+            func rewriteVault(_ text: String, from folder: URL) throws -> String {
+                var body = text
+                for ref in MarkdownLinks.vaultReferences(in: body).reversed() {
+                    switch ref {
+                    case .wikiLink:
+                        report.keptAsWritten += 1
+                    case .embed(let range, let name, let alias):
+                        let base = name.split(separator: "#").first.map(String.init) ?? name
+                        let direct = resolve(base.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? base, from: folder)
+                        let candidates = direct.map { [$0] } ?? filesNamed((base as NSString).lastPathComponent)
+                        // on a tie, the nearest path wins: most folders in common with the note, then the shortest
+                        let target = candidates.min { a, b in
+                            let ca = Self.commonPrefix(a.deletingLastPathComponent().path, folder.standardizedFileURL.resolvingSymlinksInPath().path)
+                            let cb = Self.commonPrefix(b.deletingLastPathComponent().path, folder.standardizedFileURL.resolvingSymlinksInPath().path)
+                            return ca != cb ? ca > cb : a.path.count < b.path.count
+                        }
+                        guard let target, target.pathExtension.lowercased() != "md" else { report.keptAsWritten += 1; continue }
+                        let id = try attachmentID(for: target)
+                        let label = (alias ?? name).replacingOccurrences(of: "[", with: "\\[").replacingOccurrences(of: "]", with: "\\]")
+                        let image = Self.mime(forFilename: target.lastPathComponent).hasPrefix("image/")
+                        body.replaceSubrange(range, with: (image ? "!" : "") + "[\(label)](\(Self.attachmentURLPrefix)\(id))")
+                    case .referenceDefinition(let range, let destination), .htmlImage(let range, let destination):
+                        guard let target = resolve(destination, from: folder) else { continue }
+                        body.replaceSubrange(range, with: Self.attachmentURLPrefix + (try attachmentID(for: target)).description)
+                    }
+                }
+                return body
+            }
+
             func importNote(_ url: URL, notebook: ULID?) throws {
+                if Task.isCancelled { throw CancellationError() }   // Cancel Import rolls everything back
                 var data = try Data(contentsOf: url)
                 if data.starts(with: [0xEF, 0xBB, 0xBF]) { data.removeFirst(3) }
                 guard let text = String(data: data, encoding: .utf8) else {
@@ -70,6 +132,7 @@ extension Library {
                     }
                     body.replaceSubrange(link.range, with: Self.attachmentURLPrefix + id.description)
                 }
+                body = try rewriteVault(body, from: url.deletingLastPathComponent())
 
                 let front = parsed.frontMatter
                 let dates = try? url.resourceValues(forKeys: [.creationDateKey, .contentModificationDateKey])
@@ -118,6 +181,7 @@ extension Library {
                 report.skipped.append(.init(path: relative(file), reason: .unreferencedFile))
             }
             report.attachments = attachmentIDs.count
+            if Task.isCancelled { throw CancellationError() }
             return report
         }
     }
@@ -129,5 +193,11 @@ extension Library {
             UNION ALL SELECT 1 FROM tags WHERE id = ?1 UNION ALL SELECT 1 FROM attachments WHERE id = ?1
             """
         return try !db.all(sql, [.id(id)]) { _ in true }.isEmpty
+    }
+}
+
+extension Library {
+    static func commonPrefix(_ a: String, _ b: String) -> Int {
+        zip(a.split(separator: "/"), b.split(separator: "/")).prefix { $0 == $1 }.count
     }
 }
