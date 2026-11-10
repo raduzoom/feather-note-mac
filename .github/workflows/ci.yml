@@ -14,8 +14,21 @@ on:
 jobs:
   build-test:
     runs-on: macos-15
+    defaults:
+      run:
+        working-directory: mac
     steps:
       - uses: actions/checkout@v4
+        with:
+          path: mac
+      # FeatherCrypto's tests read ../universal/test-vectors/. The universal repo is private: UNIVERSAL_READ_TOKEN
+      # is a fine-grained, read-only token for raduzoom/feather-note-universal, created by the repo owner.
+      # Until that secret exists, this step fails.
+      - uses: actions/checkout@v4
+        with:
+          repository: raduzoom/feather-note-universal
+          path: universal
+          token: ${{ secrets.UNIVERSAL_READ_TOKEN }}
       - name: Install XcodeGen
         run: brew install xcodegen
       - name: Show Xcode version
