@@ -30,6 +30,18 @@ targets:
     type: application
     platform: macOS
     sources: [FeatherNote]
+    info:
+      path: FeatherNote/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLName: app.feathernote.FeatherNote
+            CFBundleURLSchemes: [feathernote]
+        NSServices:
+          - NSMenuItem:
+              default: Save to Feather Note
+            NSMessage: saveToFeatherNote
+            NSPortName: Feather Note
+            NSSendTypes: [public.utf8-plain-text, public.url, NSStringPboardType]
     settings:
       base:
         PRODUCT_NAME: Feather Note
@@ -45,6 +57,38 @@ targets:
       - package: FeatherSync
       - package: FeatherEditor
       - package: FeatherImport
+      - target: ShareExtension
+  ShareExtension:
+    type: app-extension
+    platform: macOS
+    sources:
+      - ShareExtension
+      - FeatherNote/Capture/InboxHandOff.swift
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Feather Note
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+              NSExtensionActivationSupportsFileWithMaxCount: 10
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-only: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.feathernote.FeatherNote.Share
+        PRODUCT_NAME: ShareExtension
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Feather Note
+    dependencies:
+      - package: FeatherCore
   FeatherNoteTests:
     type: bundle.unit-test
     platform: macOS

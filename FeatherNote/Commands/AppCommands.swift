@@ -32,6 +32,9 @@ struct AppCommands: Commands {
             .disabled(!notebookSelected)
         }
         CommandMenu("Note") {
+            Button("New Quick Note") { if let model { QuickNotePanel.show(model: model) } }
+                .keyboardShortcut("n", modifiers: [.command, .option])
+            Divider()
             if let model, let e = model.editor {
                 if e.isTrashed {
                     Button("Restore Note") { act { await $0.restore(e.id) } }

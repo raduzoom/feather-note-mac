@@ -100,6 +100,92 @@ final class AppModel {
         let stored = defaults.integer(forKey: Self.retentionKey)
         trashRetentionDays = stored > 0 ? stored : 30
         editorMode = EditorMode(rawValue: defaults.string(forKey: Self.editorModeKey) ?? "") ?? .live
+        quickNoteNotebookID = defaults.string(forKey: Self.quickNoteNotebookKey(library.id)).flatMap(ULID.init(string:))
+        quickNoteShortcut = defaults.string(forKey: Self.quickNoteShortcutKey).flatMap(Shortcut.init(stored:)) ?? .quickNoteDefault
+    }
+
+    // MARK: Quick note
+
+    /// Per library, so opening another library (a test host, a UI test) never touches this one's setting.
+    static func quickNoteNotebookKey(_ library: ULID) -> String { "quickNoteNotebook-\(library)" }
+    static let quickNoteShortcutKey = "quickNoteShortcut"
+
+    /// Where quick notes and captures go; nil is "No Notebook" (the root).
+    var quickNoteNotebookID: ULID? {
+        didSet { defaults.set(quickNoteNotebookID?.description, forKey: Self.quickNoteNotebookKey(library.id)) }
+    }
+
+    var quickNoteShortcut: Shortcut {
+        didSet { defaults.set(quickNoteShortcut.stored, forKey: Self.quickNoteShortcutKey) }
+    }
+
+    /// Set when the shortcut couldn't be registered (another app holds it).
+    private(set) var quickNoteShortcutError: String?
+    private var quickNoteHotKey: HotKey?
+    private var quickNoteAction: (() -> Void)?
+
+    /// Sets a new shortcut and registers it with the same action.
+    func changeQuickNoteShortcut(_ shortcut: Shortcut) {
+        quickNoteShortcut = shortcut
+        if let quickNoteAction { registerQuickNoteShortcut(action: quickNoteAction) }
+    }
+
+    var noteCount: Int { counts.all }
+
+    // MARK: Import state (Phase 5; behaviour in Import/ImportModel.swift)
+
+    var importState: ImportState?
+    var showImportSource = false
+    var importTask: Task<Void, Never>?
+    var importStarted: Date?
+    /// Tests only: a pause after each imported note, so a test can cancel mid-import.
+    var importNoteDelay: TimeInterval = 0
+
+    /// Captures waiting to become notes (Services, Share extension). See FeatherCore `Inbox`.
+    var inbox: Inbox { Inbox(directory: library.directory.appending(path: "Inbox", directoryHint: .isDirectory)) }
+
+    /// Collects Share capture `id` (from `feathernote://inbox?id=…`) into the inbox, then files it; returns the
+    /// number of notes created.
+    @discardableResult
+    func collectHandOff(id: ULID, prefix: String = InboxHandOff.defaultPrefix) async -> Int {
+        await attempt { try InboxHandOff.collect(id: id, into: inbox, prefix: prefix) }
+        return await drainInbox()
+    }
+
+    /// Turns every pending capture into a note in the quick-note notebook; returns how many were created.
+    @discardableResult
+    func drainInbox() async -> Int {
+        var created = 0
+        await attempt { created = try await library.drain(inbox, into: quickNoteNotebookID).count }
+        if created > 0 { await refresh() }
+        return created
+    }
+
+    /// Registers the quick-note shortcut system-wide, replacing any earlier registration.
+    func registerQuickNoteShortcut(action: @escaping () -> Void) {
+        quickNoteAction = action
+        quickNoteHotKey = nil
+        do {
+            quickNoteHotKey = try HotKey(shortcut: quickNoteShortcut, action: action)
+            quickNoteShortcutError = nil
+        } catch {
+            quickNoteShortcutError = "This shortcut is used by another app."
+        }
+        if HotKey.systemShortcuts().contains(quickNoteShortcut) {
+            quickNoteHotKey = nil
+            quickNoteShortcutError = "macOS uses this shortcut."
+        }
+    }
+
+    /// Saves a quick note: first line as the title, the rest as the body. Whitespace-only text saves nothing.
+    func saveQuickNote(text: String, notebookID: ULID?) async -> Note? {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        let now = Int64(Date().timeIntervalSince1970 * 1000)
+        let item = InboxItem(id: ULID.generate(at: now), kind: .text, text: text, created: now)
+        var note: Note?
+        await attempt { note = try await library.capture(item, files: [], into: notebookID) }
+        await refresh()
+        return note
     }
 
     func toggleEditorMode() { editorMode = editorMode == .live ? .raw : .live }
@@ -214,13 +300,14 @@ final class AppModel {
     }
 
     /// Reloads sidebar data, the list (or search) and the editor, then fixes the selection.
-    private func refresh() async {
+    func refresh() async {
         let before = visibleIDs
         await attempt {
             notebooks = try await library.notebooks()
             tags = try await library.tags()
             counts = try await library.counts()
             tagsByNote = try await library.noteTagIDs()
+            if let q = quickNoteNotebookID, !notebooks.contains(where: { $0.id == q }) { quickNoteNotebookID = nil }
             if case .notebook(let id) = selection, !notebooks.contains(where: { $0.id == id }) { selection = .all }
             if case .tag(let id) = selection, !tags.contains(where: { $0.id == id }) { selection = .all }
             notes = try await library.notes(in: selection.scope)
