@@ -29,8 +29,9 @@ final class SmokeTests: XCTestCase {
     func testQuickNoteSavesIntoNotebook() {
         let app = launch()
         XCTAssertTrue(app.windows["Feather Note"].waitForExistence(timeout: 10))
-        app.menuBars.menuBarItems["Note"].click()
-        app.menuItems["New Quick Note"].click()
+        let noteMenu = app.menuBars.menuBarItems["Note"]
+        noteMenu.click()
+        noteMenu.menuItems["New Quick Note"].click()   // the menu bar extra has one too
         let text = app.textViews["quick-note-text"]
         XCTAssertTrue(text.waitForExistence(timeout: 5))
         text.typeText("UI quick note")
