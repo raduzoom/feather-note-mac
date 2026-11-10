@@ -7,8 +7,16 @@ let package = Package(
     products: [
         .library(name: "FeatherCrypto", targets: ["FeatherCrypto"]),
     ],
+    dependencies: [
+        // libsodium as a prebuilt xcframework; FeatherCrypto calls its C API directly (Sodium.swift)
+        .package(url: "https://github.com/jedisct1/swift-sodium", exact: "0.9.1"),
+        .package(path: "../FeatherCore"),
+    ],
     targets: [
-        .target(name: "FeatherCrypto"),
-        .testTarget(name: "FeatherCryptoTests", dependencies: ["FeatherCrypto"]),
+        .target(name: "FeatherCrypto", dependencies: [
+            .product(name: "Clibsodium", package: "swift-sodium"),
+            "FeatherCore",
+        ]),
+        .testTarget(name: "FeatherCryptoTests", dependencies: ["FeatherCrypto", "FeatherCore"]),
     ]
 )
