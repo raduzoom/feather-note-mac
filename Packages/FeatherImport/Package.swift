@@ -7,8 +7,12 @@ let package = Package(
     products: [
         .library(name: "FeatherImport", targets: ["FeatherImport"]),
     ],
+    dependencies: [
+        .package(path: "../FeatherCore"),
+    ],
     targets: [
-        .target(name: "FeatherImport"),
-        .testTarget(name: "FeatherImportTests", dependencies: ["FeatherImport"]),
+        .target(name: "FeatherImport", dependencies: ["FeatherCore"]),
+        .testTarget(name: "FeatherImportTests", dependencies: ["FeatherImport", "FeatherCore"],
+                    resources: [.copy("Fixtures")]),
     ]
 )

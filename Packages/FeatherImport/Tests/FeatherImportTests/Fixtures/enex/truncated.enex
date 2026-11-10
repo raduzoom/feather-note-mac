@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE en-export SYSTEM "http://xml.evernote.com/pub/evernote-export4.dtd">
+<en-export export-date="20251109T135200Z" application="Evernote" version="10.0">
+  <note>
+    <title>Kitchen renovation quotes</title>
+    <created>20251109T135200Z</created>
+    <updated>20251110T080000Z</updated>
+    <tag>kitchen</tag>
+    <tag>q3</tag>
+    <tag>a, b</tag>
+    <note-attributes><source-url>https://quotes.example/kitchen</source-url></note-attributes>
+    <content><![CDATA[<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd"><en-note><div>Three quotes so far.</div><en-media type="image/png" hash="70599eb2d64a47d1ab4f2e96b0e203d6"/></en-note>]]></content>
+    <resource>
+      <data encoding="base64">
+iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAIAAAA7
+ljmRAAAAEElEQVR4nGNocFCAIwacHADRZwqBZaYH
+GAAAAABJRU5ErkJggg==
+      </data>
+      <mime>image/png</mime>
+      <resource-attributes><file-name>counter.png</file-name></resource-attributes>
+    </resource>
+  </note>
+  <note>
+    
