@@ -268,6 +268,8 @@ private struct Renderer {
         var items: [String] = []
         var number = 1
         var lastChildIndent: String?
+        // current Evernote checklists: <ul style="--en-todo:true"><li style="--en-checked:true">
+        let isChecklist = Self.style(n, has: "--en-todo:true")
         for child in n.children {
             if child.name == "ul" || child.name == "ol" {
                 // Evernote writes a nested list directly inside the list: it belongs to the item before it
@@ -283,13 +285,14 @@ private struct Renderer {
                 li = Node(element: "li", attributes: [:])
                 li.children = [child]
             }
-            let marker = n.name == "ol" ? "\(number). " : "- "
+            let marker = n.name == "ol" && !isChecklist ? "\(number). " : "- "
             number += 1
             let childIndent = indent + String(repeating: " ", count: marker.count)
             lastChildIndent = childIndent
             let content = li.children.filter { $0.name != "ul" && $0.name != "ol" }
             var text = Self.joinLines(inline(content).components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) })
             if text.hasPrefix("- [") { text = String(text.dropFirst(2)) }   // a to-do item: "- [x] " + text
+            else if isChecklist { text = (Self.style(li, has: "--en-checked:true") ? "[x] " : "[ ] ") + text }
             var item = indent + marker + text.replacingOccurrences(of: "\n", with: "\n" + childIndent)
             for sub in li.children where sub.name == "ul" || sub.name == "ol" {
                 item += "\n" + list(sub, indent: childIndent)
@@ -297,6 +300,11 @@ private struct Renderer {
             items.append(item)
         }
         return items.joined(separator: "\n")
+    }
+
+    /// Whether `n`'s style attribute holds `declaration` (written without spaces), ignoring spaces and case.
+    static func style(_ n: Node, has declaration: String) -> Bool {
+        (n.attributes["style"] ?? "").replacingOccurrences(of: " ", with: "").lowercased().contains(declaration)
     }
 
     /// An encrypted block exactly as written in the source.
