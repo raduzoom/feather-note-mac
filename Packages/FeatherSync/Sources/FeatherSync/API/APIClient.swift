@@ -6,7 +6,7 @@ public final class APIClient: Sendable {
     let session: URLSession
     let token: @Sendable () -> String?
 
-    static let userAgent = "FeatherNote/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev") (Mac)"
+    static let userAgent = "FeatherMark/\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev") (Mac)"
 
     public init(server: CloudServer, configuration: URLSessionConfiguration = .ephemeral, token: @escaping @Sendable () -> String?) {
         self.server = server

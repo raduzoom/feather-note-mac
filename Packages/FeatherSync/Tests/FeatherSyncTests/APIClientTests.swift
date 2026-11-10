@@ -66,7 +66,7 @@ import Testing
         #expect(!info.billingEnabled && info.defaultQuotaBytes == 20)
         #expect(reqs[0].headers["Authorization"] == nil)
         #expect(reqs[1].headers["Authorization"] == "Bearer fn1_token")
-        #expect(reqs.allSatisfy { $0.headers["User-Agent"]?.hasPrefix("FeatherNote/") == true })
+        #expect(reqs.allSatisfy { $0.headers["User-Agent"]?.hasPrefix("FeatherMark/") == true })
     }
 
     @Test func blobBodiesAreRaw() async throws {
@@ -86,4 +86,9 @@ import Testing
         let c = APIClient(server: try! CloudServer(userInput: "http://127.0.0.1:1"), configuration: .ephemeral, token: { nil })
         await #expect(throws: APIError(status: 0, code: "network", retryAfter: nil)) { try await c.getServer() }
     }
+}
+
+// Identifiers carry the app's name, FeatherMark (2026-11-10), before any release.
+@Test func sessionKeychainServiceUsesTheAppIdentifier() {
+    #expect(KeychainSecretStore().service == "app.feathermark.FeatherMark.session")
 }

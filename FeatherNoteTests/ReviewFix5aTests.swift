@@ -17,7 +17,7 @@ import FeatherCore
             let item = InboxItem(id: ULID.generate(at: 1_762_696_320_000 + Int64(i)), kind: .text, text: "Capture \(i)",
                                  created: 1_762_696_320_000 + Int64(i))
             let url = try InboxHandOff.deliver(item, files: [], prefix: prefix)
-            #expect(url.absoluteString == "feathernote://inbox?id=\(item.id)")
+            #expect(url.absoluteString == "feathermark://inbox?id=\(item.id)")
             ids.append(item.id)
             // the app collects every other capture while later ones keep arriving
             if i % 2 == 1 { #expect(try InboxHandOff.collect(id: ids[i - 1], into: inbox, prefix: prefix)) }

@@ -44,8 +44,8 @@ Specs, crypto test vectors, designs and the roadmap live in the `universal` repo
 
 | Decision | Value |
 |---|---|
-| Bundle id prefix | `app.feathernote` (app: `app.feathernote.FeatherNote`) |
-| App product name | `FeatherMark` (renamed from Feather Note, 2026-11-10; identifiers keep the old name: bundle id, Keychain services, `FeatherNote` module and scheme, repo name; `LibraryLocation` moves an old `Application Support/Feather Note` library once) |
+| Bundle id prefix | `app.feathermark` (app: `app.feathermark.FeatherMark`; switched from `app.feathernote` on 2026-11-10, before any release; registered in the developer account with the App Group `group.app.feathermark`) |
+| App product name | `FeatherMark` (renamed from Feather Note, 2026-11-10; identifiers keep the old name only where users never see them: the `FeatherNote` module and scheme, and the repo name. The bundle id, Keychain services and URL scheme carry the new name; `LibraryLocation` moves an old `Application Support/Feather Note` library once) |
 | Version | `MARKETING_VERSION` / `CURRENT_PROJECT_VERSION` in `project.yml` |
 | Minimum OS | macOS 15; Release builds are universal (arm64 + x86_64) |
 | Swift tests | Swift Testing (`import Testing`); XCTest only for UI tests |
@@ -67,7 +67,7 @@ Specs, crypto test vectors, designs and the roadmap live in the `universal` repo
 TEST_RUNNER_FEATHER_SHOT_LIB=<seeded library dir> xcodebuild test -project FeatherNote.xcodeproj -scheme FeatherNote -destination 'platform=macOS' -only-testing:FeatherNoteUITests/ScreenshotTests
 ```
 
-  Images land in `~/Library/Containers/app.feathernote.FeatherNoteUITests.xctrunner/Data/tmp/shots/`. Seed a library with `fncore init` and `fncore import <dir> <markdown folder>`. Don't use `screencapture`: it asks the user for screen-recording permission.
+  Images land in `~/Library/Containers/app.feathermark.FeatherNoteUITests.xctrunner/Data/tmp/shots/`. Seed a library with `fncore init` and `fncore import <dir> <markdown folder>`. Don't use `screencapture`: it asks the user for screen-recording permission.
 
 ## FeatherEditor (when changing the editor package)
 
@@ -88,9 +88,9 @@ TEST_RUNNER_FEATHER_SHOT_LIB=<seeded library dir> xcodebuild test -project Feath
 ## Capture (when changing quick note, Services, the Share extension or scans)
 
 - Everything captured from outside the editor is an `InboxItem` (FeatherCore `Inbox.swift`) in `<library>/Inbox/<id>/`. The item id becomes the note id, so capturing twice makes one note, and a folder is removed only after its note commits. `CaptureText.split`: first line (≤ 100 characters) is the title, and nothing is dropped.
-- The Share extension is sandboxed and ad-hoc signed, so it can't share an App Group container without a prompt. Each capture goes on its own pasteboard, `app.feathernote.inbox.<id>`, and the extension opens `feathernote://inbox?id=<id>`; the app collects it (`InboxHandOff`, compiled into both targets). Switch to an App Group container with Developer ID (Phase 10).
+- The Share extension is sandboxed and ad-hoc signed, so it can't share an App Group container without a prompt. Each capture goes on its own pasteboard, `app.feathermark.inbox.<id>`, and the extension opens `feathermark://inbox?id=<id>`; the app collects it (`InboxHandOff`, compiled into both targets). Switch to an App Group container with Developer ID (Phase 10).
 - The global shortcut uses Carbon `RegisterEventHotKey` with `kEventHotKeyExclusive`. A clash with another app's ordinary registration can't be detected; Settings reports macOS's own shortcuts (`HotKey.systemShortcuts()`) and says so.
-- Isolated runs (a test host, or any launch with `-FeatherLibraryPath`) use the `app.feathernote.FeatherNote.isolated` defaults suite, register no global shortcut and ignore `feathernote://` URLs, so tests never touch the real settings or a real capture.
+- Isolated runs (a test host, or any launch with `-FeatherLibraryPath`) use the `app.feathermark.FeatherMark.isolated` defaults suite, register no global shortcut and ignore `feathermark://` URLs, so tests never touch the real settings or a real capture.
 - Continuity Camera: `EditorTextView.validRequestor` accepts images and PDF; the Note menu gets an `NSMenuItem.importFromDeviceIdentifier` item, re-added whenever the menu bar opens (SwiftUI rebuilds its menus). Image data wins over a PDF flavour when both are offered.
 
 ## FeatherSync and Feather Cloud (when changing sync, accounts or the Cloud screens)
@@ -100,7 +100,7 @@ TEST_RUNNER_FEATHER_SHOT_LIB=<seeded library dir> xcodebuild test -project Feath
 - `markPushed(…, ifDirtySeq:)` clears dirty state only if nothing changed after the snapshot. Push conflicts are left dirty and resolved during the pull, in seq order.
 - Conflict copies follow sync-protocol.md "Conflict resolution"; resolution always downloads the server's body (`forceBlob`), never trusts this Mac's `blob_sha`.
 - Feather Cloud's address and billing come from the app's Info.plist (`project.yml`: `FeatherCloudURL`, `FeatherCloudBilling`), so the signed-out app knows them without a request. 1.0.0 ships billing off: no trial, subscribe or plan screens on Feather Cloud (`CloudModel.billingEnabled`; once signed in, the account's `billing_enabled` decides). Replace `CLOUD_DOMAIN` when the domain is bought. A missing or invalid `FeatherCloudURL` (or plain http) falls back to `https://feather-cloud.invalid`, a host that never resolves, never to a real domain.
-- Secrets: the session token is in the Keychain service `app.feathernote.FeatherNote.session`, the master key in `app.feathernote.FeatherNote.master-key`, both keyed `"<server host>|<email>"`. Isolated runs and tests use in-memory stores (`CloudEnvironment.memory`, the default of `AppModel.open`).
+- Secrets: the session token is in the Keychain service `app.feathermark.FeatherMark.session`, the master key in `app.feathermark.FeatherMark.master-key`, both keyed `"<server host>|<email>"`. Isolated runs and tests use in-memory stores (`CloudEnvironment.memory`, the default of `AppModel.open`).
 - Unit tests: `swift test --package-path Packages/FeatherSync --filter FeatherSyncTests`. Two-device tests against the local server (the target is not in the app's scheme):
 
 ```bash

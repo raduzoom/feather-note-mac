@@ -150,7 +150,7 @@ final class AppModel {
     /// Captures waiting to become notes (Services, Share extension). See FeatherCore `Inbox`.
     var inbox: Inbox { Inbox(directory: library.directory.appending(path: "Inbox", directoryHint: .isDirectory)) }
 
-    /// Collects Share capture `id` (from `feathernote://inbox?id=…`) into the inbox, then files it; returns the
+    /// Collects Share capture `id` (from `feathermark://inbox?id=…`) into the inbox, then files it; returns the
     /// number of notes created.
     @discardableResult
     func collectHandOff(id: ULID, prefix: String = InboxHandOff.defaultPrefix) async -> Int {

@@ -4,14 +4,14 @@ import FeatherCore
 /// How the sandboxed Share extension hands a capture to the app (plan Task 4, Decision 4).
 ///
 /// An ad-hoc-signed sandboxed extension can't share an App Group container without a system prompt, so each
-/// capture (the item plus its files, inlined) goes on its own named pasteboard, `app.feathernote.inbox.<id>`,
-/// and the extension opens `feathernote://inbox?id=<id>`. The app moves that one capture into its inbox and
+/// capture (the item plus its files, inlined) goes on its own named pasteboard, `app.feathermark.inbox.<id>`,
+/// and the extension opens `feathermark://inbox?id=<id>`. The app moves that one capture into its inbox and
 /// releases the pasteboard. One pasteboard per capture means two captures can never overwrite each other.
 /// Switch to the App Group container once the app is Developer ID signed (Phase 10).
 /// Compiled into both the app and the extension.
 enum InboxHandOff {
-    static let defaultPrefix = "app.feathernote.inbox"
-    static let itemType = NSPasteboard.PasteboardType("app.feathernote.inbox-item")
+    static let defaultPrefix = "app.feathermark.inbox"
+    static let itemType = NSPasteboard.PasteboardType("app.feathermark.inbox-item")
     /// Files are inlined, so one capture is capped.
     static let maxBytes = 50 * 1024 * 1024
 
@@ -28,7 +28,7 @@ enum InboxHandOff {
     }
 
     /// The URL that wakes the app to collect capture `id`.
-    static func wakeURL(for id: ULID) -> URL { URL(string: "feathernote://inbox?id=\(id)")! }
+    static func wakeURL(for id: ULID) -> URL { URL(string: "feathermark://inbox?id=\(id)")! }
 
     /// The capture id in a wake URL, if it is one.
     static func captureID(in url: URL) -> ULID? {

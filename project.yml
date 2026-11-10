@@ -1,6 +1,6 @@
 name: FeatherNote
 options:
-  bundleIdPrefix: app.feathernote
+  bundleIdPrefix: app.feathermark
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
@@ -38,8 +38,8 @@ targets:
         FeatherCloudURL: https://CLOUD_DOMAIN
         FeatherCloudBilling: false
         CFBundleURLTypes:
-          - CFBundleURLName: app.feathernote.FeatherNote
-            CFBundleURLSchemes: [feathernote]
+          - CFBundleURLName: app.feathermark.FeatherMark
+            CFBundleURLSchemes: [feathermark]
         NSServices:
           - NSMenuItem:
               default: Save to FeatherMark
@@ -51,7 +51,7 @@ targets:
         PRODUCT_NAME: FeatherMark
         PRODUCT_MODULE_NAME: FeatherNote
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-        PRODUCT_BUNDLE_IDENTIFIER: app.feathernote.FeatherNote
+        PRODUCT_BUNDLE_IDENTIFIER: app.feathermark.FeatherMark
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: FeatherMark
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.productivity
@@ -87,7 +87,7 @@ targets:
         com.apple.security.files.user-selected.read-only: true
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.feathernote.FeatherNote.Share
+        PRODUCT_BUNDLE_IDENTIFIER: app.feathermark.FeatherMark.Share
         PRODUCT_NAME: ShareExtension
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: FeatherMark

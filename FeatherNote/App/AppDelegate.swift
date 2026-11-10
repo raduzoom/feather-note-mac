@@ -25,7 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isolated = AppDelegate.isIsolatedRun()
         opened = Result {
             try AppModel.open(at: LibraryLocation.directory(),
-                              defaults: isolated ? UserDefaults(suiteName: "app.feathernote.FeatherNote.isolated")! : .standard,
+                              defaults: isolated ? UserDefaults(suiteName: "app.feathermark.FeatherMark.isolated")! : .standard,
                               cloud: .live(isolated: isolated))
         }
         super.init()
@@ -73,7 +73,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Task { await model.drainInbox() }
     }
 
-    /// `feathernote://inbox?id=…`: the Share extension left a capture; collect it. An isolated run ignores these,
+    /// `feathermark://inbox?id=…`: the Share extension left a capture; collect it. An isolated run ignores these,
     /// so a test host can never take a real capture into a throwaway library.
     func application(_ application: NSApplication, open urls: [URL]) {
         guard let model, !isolated else { return }

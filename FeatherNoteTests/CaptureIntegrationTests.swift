@@ -58,7 +58,7 @@ import FeatherCore
                              title: "A page", created: 1_762_696_320_000)
         // the extension delivers while the app isn't looking
         _ = try InboxHandOff.deliver(item, files: [file], prefix: prefix)
-        // the app opens later, receives feathernote://inbox?id=…, and collects it
+        // the app opens later, receives feathermark://inbox?id=…, and collects it
         let m = try await makeModel()
         #expect(await m.collectHandOff(id: item.id, prefix: prefix) == 1)
         #expect(await m.collectHandOff(id: item.id, prefix: prefix) == 0)

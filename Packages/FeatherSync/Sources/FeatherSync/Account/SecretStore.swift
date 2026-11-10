@@ -11,7 +11,7 @@ public protocol SecretStore: Sendable {
 public struct KeychainSecretStore: SecretStore {
     public let service: String
 
-    public init(service: String = "app.feathernote.FeatherNote.session") { self.service = service }
+    public init(service: String = "app.feathermark.FeatherMark.session") { self.service = service }
 
     private func query(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,

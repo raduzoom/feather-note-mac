@@ -4,7 +4,7 @@ import Testing
 
 /// Both stores; the Keychain one uses a service name of its own per run, so the real item is never touched.
 func stores() -> [any MasterKeyStore] {
-    [InMemoryMasterKeyStore(), KeychainMasterKeyStore(service: "app.feathernote.FeatherCryptoTests.\(UUID().uuidString)")]
+    [InMemoryMasterKeyStore(), KeychainMasterKeyStore(service: "app.feathermark.FeatherCryptoTests.\(UUID().uuidString)")]
 }
 
 @Suite struct MasterKeyStoreTests {
@@ -31,4 +31,9 @@ func stores() -> [any MasterKeyStore] {
             try InMemoryMasterKeyStore().save(Data([1, 2, 3]), account: "a")
         }
     }
+}
+
+// Identifiers carry the app's name, FeatherMark (2026-11-10), before any release.
+@Test func keychainServiceUsesTheAppIdentifier() {
+    #expect(KeychainMasterKeyStore().service == "app.feathermark.FeatherMark.master-key")
 }

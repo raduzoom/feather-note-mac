@@ -19,7 +19,7 @@ public enum KeychainError: Error, Equatable, Sendable {
 public struct KeychainMasterKeyStore: MasterKeyStore {
     public let service: String
 
-    public init(service: String = "app.feathernote.FeatherNote.master-key") { self.service = service }
+    public init(service: String = "app.feathermark.FeatherMark.master-key") { self.service = service }
 
     private func query(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
