@@ -53,7 +53,30 @@ import Testing
         }
     }
 
-    func render(_ text: String, mode: EditorMode, caret: Int, scheme: String, to url: URL) throws {
+    @Test func blockMenuShots() throws {
+        guard let dir = ProcessInfo.processInfo.environment["FEATHER_SHOT_DIR"] else { return }
+        let out = URL(fileURLWithPath: dir)
+        try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+        let caret = (Self.note as NSString).range(of: "readings through").location
+        var menu: NSView?
+        try render(Self.note, mode: .live, caret: caret, scheme: "light", to: out.appending(path: "desktop-editor-block-button-light.png")) { tv in
+            tv.blockButtonShowsWithoutFocus = true
+            tv.updateBlockButton()
+        }
+        try render("", mode: .live, caret: 0, scheme: "light", to: out.appending(path: "editor-slash-light.png")) { tv in
+            tv.insertText("/", replacementRange: tv.selectedRange())
+            tv.insertText("h", replacementRange: tv.selectedRange())
+            menu = tv.blockMenu.panel?.contentView
+        }
+        let view = try #require(menu)
+        view.layoutSubtreeIfNeeded()
+        let rep = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance { view.cacheDisplay(in: view.bounds, to: rep) }
+        try rep.representation(using: .png, properties: [:])!.write(to: out.appending(path: "desktop-block-menu-light.png"))
+    }
+
+    func render(_ text: String, mode: EditorMode, caret: Int, scheme: String, to url: URL,
+                prepare: (EditorTextView) -> Void = { _ in }) throws {
         let size = NSSize(width: 760, height: 1_000)
         let appearance = NSAppearance(named: scheme == "dark" ? .darkAqua : .aqua)!
         // The editor panel's glass, flattened over the window background (from the boards' CSS).
@@ -75,6 +98,7 @@ import Testing
         if mode == .raw { tv.mode = .raw }
         tv.setSelectedRange(NSRange(location: caret, length: 0))
         window.makeFirstResponder(tv)
+        prepare(tv)
         tv.textLayoutManager?.textViewportLayoutController.layoutViewport()
         appearance.performAsCurrentDrawingAppearance {
             scroll.layoutSubtreeIfNeeded()

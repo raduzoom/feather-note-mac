@@ -24,7 +24,35 @@ public extension NSTextView {
 public final class EditorTextView: NSTextView, @preconcurrency NSTextStorageDelegate {
     public var theme: EditorTheme = .standard
     public var mode: EditorMode = .live {
-        didSet { if oldValue != mode { switchMode() } }
+        didSet { if oldValue != mode { closeBlockMenu(); switchMode(); updateBlockButton() } }
+    }
+    /// The block menu ("+" in the margin, "/" at a line start) and what opened it.
+    let blockMenu = BlockMenuController()
+    var blockTrigger: BlockTrigger?
+    /// Window and scroll observers for the block menu and the "+" button.
+    var blockObservers: [NSObjectProtocol] = []
+    /// The "+" in the left margin beside the caret's line.
+    let blockButton = BlockButton()
+    var blockButtonUpdateScheduled = false
+    /// Tests: show the "+" without a key window.
+    var blockButtonShowsWithoutFocus = false
+    /// Tests: record menus instead of popping them up.
+    var presentsMenus = true
+    var lastPresentedMenu: NSMenu?
+    /// Times the editor took focus back from the block menu (tests).
+    var focusRestores = 0
+    /// The text's length when the "/" query was last read: a selection change at the same length is a caret
+    /// move, not typing.
+    var slashTextLength = 0
+    /// A scan picked from the block menu: where its result goes, and in which note.
+    var pendingScan: (anchor: Int, generation: Int)?
+    /// Asks for files to attach ("Image or file"); calls back with none when cancelled.
+    public var chooseFiles: (@escaping ([URL]) -> Void) -> Void = { done in
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        let finish = { (r: NSApplication.ModalResponse) in done(r == .OK ? panel.urls : []) }
+        if let window = NSApp.keyWindow { panel.beginSheetModal(for: window, completionHandler: finish) } else { panel.begin(completionHandler: finish) }
     }
     public let imageCache = ImageCache()
     static let placeholderImageHeight: CGFloat = 96
@@ -89,6 +117,8 @@ public final class EditorTextView: NSTextView, @preconcurrency NSTextStorageDele
 
     /// Shows `text` as a fresh note: no undo history, styled from scratch.
     public func load(_ text: String) {
+        closeBlockMenu()
+        pendingScan = nil
         noteUndo = UndoManager()
         loadGeneration += 1
         anchors.removeAll()
@@ -107,6 +137,7 @@ public final class EditorTextView: NSTextView, @preconcurrency NSTextStorageDele
         super.setFrameSize(newSize)
         let side = max(minimumSideInset, ((newSize.width - measure) / 2).rounded(.down))
         if textContainerInset.width != side { textContainerInset = NSSize(width: side, height: 8) }
+        scheduleBlockButtonUpdate()
     }
 
     public override func draw(_ dirtyRect: NSRect) {
@@ -271,6 +302,7 @@ public final class EditorTextView: NSTextView, @preconcurrency NSTextStorageDele
             adjusted[0] = NSValue(range: adjustedSelection(first, from: old))
         }
         super.setSelectedRanges(adjusted, affinity: affinity, stillSelecting: stillSelecting)
+        if !isRestyling, !stillSelecting { blockMenuDidChangeSelection(); scheduleBlockButtonUpdate() }
         guard !isLoading, !isRestyling, !stillSelecting else { return }
         let new = selectedRange()
         // The blocks the caret left and the ones it entered, separately: a jump across the note must
@@ -357,6 +389,8 @@ extension EditorTextView {
     public override func didChangeText() {
         super.didChangeText()
         flushPendingEdit()
+        blockMenuDidChangeText()
+        scheduleBlockButtonUpdate()
         idleUndoBreak?.invalidate()
         idleUndoBreak = Timer.scheduledTimer(withTimeInterval: 1, repeats: false) { [weak self] _ in
             MainActor.assumeIsolated { self?.breakUndoCoalescing() }
@@ -394,6 +428,13 @@ extension EditorTextView {
     public override func insertText(_ string: Any, replacementRange: NSRange) {
         super.insertText(string, replacementRange: replacementRange)
         if isComposing, !hasMarkedText() { finishComposing() }
+        blockMenuDidInsert((string as? String) ?? (string as? NSAttributedString)?.string ?? "")
+    }
+
+    /// While the block menu is open, its keys (arrows, Return, Esc) go to it first.
+    public override func doCommand(by selector: Selector) {
+        if blockMenu.isOpen, blockMenu.handle(selector) { return }
+        super.doCommand(by: selector)
     }
 
     func finishComposing() {
@@ -402,6 +443,7 @@ extension EditorTextView {
         let around = pendingRestyle.map { NSUnionRange($0, selectedRange()) } ?? selectedRange()
         pendingRestyle = nil
         restyle(blockRanges(touching: around) ?? around)
+        blockMenuDidChangeText()
     }
 
     // MARK: Mouse
@@ -513,7 +555,8 @@ extension EditorTextView {
         let start = min(range.location, ns.length)
         let atLineStart = start == 0 || [0x0A, 0x0D].contains(ns.character(at: start - 1))
         let atLineEnd = NSMaxRange(range) >= ns.length || [0x0A, 0x0D].contains(ns.character(at: NSMaxRange(range)))
-        let nl = EditorCommands.previousEnding(ns, before: EditorCommands.line(ns, at: start).range.location)
+        let l = EditorCommands.line(ns, at: start)
+        let nl = l.ending.isEmpty ? EditorCommands.previousEnding(ns, before: l.range.location) : l.ending
         var text = snippets.joined(separator: nl)
         if !atLineStart { text = nl + text }
         if !atLineEnd { text += nl }
@@ -596,12 +639,32 @@ extension EditorTextView {
             if hasText, type == .png || type == .tiff || type == .pdf { return super.readSelection(from: pboard, type: .string) }
             return super.readSelection(from: pboard, type: type)
         }
-        // The import may take a while: keep the insertion point as an anchor that later edits move, and
-        // drop the result if another note was loaded meanwhile.
+        // a scan the block menu asked for arrives on the Continuity Camera's own pasteboard
+        if let scan = pendingScan, pboard.name != .general, pboard.name != .drag {
+            pendingScan = nil
+            if scan.generation == loadGeneration, anchors[scan.anchor] != nil {
+                importAndInsert(urls, anchor: scan.anchor, generation: scan.generation, cleaningUp: madeFiles, asBlock: true)
+                return true
+            }
+        }
+        importAndInsert(urls, anchor: addAnchor(selectedRange()), generation: loadGeneration, cleaningUp: madeFiles)
+        return true
+    }
+
+    /// Keeps `range` as an anchor that later edits move; returns its id.
+    func addAnchor(_ range: NSRange) -> Int {
         let id = nextAnchorID
         nextAnchorID += 1
-        anchors[id] = selectedRange()
-        let generation = loadGeneration
+        anchors[id] = range
+        return id
+    }
+
+    func removeAnchor(_ id: Int) -> NSRange? { anchors.removeValue(forKey: id) }
+
+    /// Imports `urls` and inserts their snippets at the anchor. The import may take a while: the anchor moves
+    /// with later edits, and the result is dropped if another note was loaded meanwhile (`generation`).
+    /// `asBlock`: block-menu media, inserted as blocks of their own (`EditorCommands.mediaEdit`).
+    func importAndInsert(_ urls: [URL], anchor id: Int, generation: Int, cleaningUp madeFiles: [URL], asBlock: Bool = false) {
         let importer = importFiles
         temporaryFiles += madeFiles
         Task { @MainActor [weak self] in
@@ -611,9 +674,13 @@ extension EditorTextView {
             guard let self, let range = anchors.removeValue(forKey: id), loadGeneration == generation else { return }
             let length = (string as NSString).length
             let start = min(range.location, length)
-            insertAttachmentSnippets(snippets, at: NSRange(location: start, length: min(range.length, length - start)))
+            if asBlock {
+                guard !snippets.isEmpty else { return }
+                apply(EditorCommands.mediaEdit(snippets, text: string, at: start))
+            } else {
+                insertAttachmentSnippets(snippets, at: NSRange(location: start, length: min(range.length, length - start)))
+            }
         }
-        return true
     }
 }
 
