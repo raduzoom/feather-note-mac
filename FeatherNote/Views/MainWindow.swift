@@ -33,6 +33,14 @@ struct MainWindow: View {
             model.startMaintenance()
             if let fixture = Self.importFixture() { model.startImport(fixture) }
         }
+        .sheet(item: Binding(get: { model.cloud.sheet }, set: { model.cloud.sheet = $0 })) { sheet in
+            switch sheet {
+            case .onboarding(let flow):
+                OnboardingSheet(flow: flow, close: { model.cloud.sheet = nil }, signIn: { model.cloud.showSignIn() })
+            case .signIn(let flow):
+                SignInSheet(flow: flow, close: { model.cloud.sheet = nil })
+            }
+        }
         .sheet(isPresented: Binding(get: { model.showImportSource || model.importState != nil },
                                     set: { if !$0 { model.showImportSource = false } })) {
             ImportSheet(model: model).interactiveDismissDisabled()

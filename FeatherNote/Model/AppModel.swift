@@ -1,5 +1,6 @@
 import FeatherCore
 import FeatherEditor
+import FeatherSync
 import Foundation
 import UniformTypeIdentifiers
 import Observation
@@ -37,6 +38,8 @@ final class AppModel {
 
     let library: Library
     let defaults: UserDefaults
+    /// Feather Cloud account and sync (Phase 8).
+    private(set) var cloud: CloudModel!
 
     // Sidebar
     private(set) var selection: SidebarItem = .all
@@ -94,7 +97,7 @@ final class AppModel {
     private var searchGeneration = 0
     private var purgedThisLaunch = false
 
-    private init(library: Library, defaults: UserDefaults) {
+    private init(library: Library, defaults: UserDefaults, cloud environment: CloudEnvironment) {
         self.library = library
         self.defaults = defaults
         let stored = defaults.integer(forKey: Self.retentionKey)
@@ -102,6 +105,9 @@ final class AppModel {
         editorMode = EditorMode(rawValue: defaults.string(forKey: Self.editorModeKey) ?? "") ?? .live
         quickNoteNotebookID = defaults.string(forKey: Self.quickNoteNotebookKey(library.id)).flatMap(ULID.init(string:))
         quickNoteShortcut = defaults.string(forKey: Self.quickNoteShortcutKey).flatMap(Shortcut.init(stored:)) ?? .quickNoteDefault
+        cloud = CloudModel(library: library, defaults: defaults, environment: environment,
+                           hooks: CloudHooks(beforeSync: { [weak self] in await self?.flush() },
+                                             onPulled: { [weak self] ids in await self?.applyPulled(ids) }))
     }
 
     // MARK: Quick note
@@ -229,8 +235,10 @@ final class AppModel {
         else if let u = URL(string: url), u.scheme != nil { NSWorkspaceOpener.open(u) }
     }
 
-    static func open(at directory: URL, clock: LibraryClock = .system, defaults: UserDefaults = .standard) throws -> AppModel {
-        AppModel(library: try Library.open(at: directory, clock: clock), defaults: defaults)
+    /// `cloud` defaults to in-memory secrets: only the app itself passes the Keychain.
+    static func open(at directory: URL, clock: LibraryClock = .system, defaults: UserDefaults = .standard,
+                     cloud: CloudEnvironment = .memory) throws -> AppModel {
+        AppModel(library: try Library.open(at: directory, clock: clock), defaults: defaults, cloud: cloud)
     }
 
     // MARK: Derived
@@ -300,7 +308,8 @@ final class AppModel {
     }
 
     /// Reloads sidebar data, the list (or search) and the editor, then fixes the selection.
-    func refresh() async {
+    func refresh(fromSync: Bool = false) async {
+        if !fromSync { cloud.localChanged() }   // a local change: sync 2 s after the last one
         let before = visibleIDs
         await attempt {
             notebooks = try await library.notebooks()
@@ -351,6 +360,36 @@ final class AppModel {
         await attempt { note = try await library.note(id) }
         guard selectedNoteID == id, editor == nil else { return }   // another open won meanwhile
         editor = note.map(EditorState.init)
+    }
+
+    /// After a pull. If it changed the note you're typing in (typed after the pre-sync save, so not yet saved),
+    /// your text goes to a conflict copy, which stays open in front of you: neither version is overwritten.
+    func applyPulled(_ ids: Set<ULID>) async {
+        if let p = pending, ids.contains(p.id), var mine = try? await library.note(p.id) {
+            saveTask?.cancel()
+            saveTask = nil
+            pending = nil
+            mine.title = p.title
+            mine.body = p.body
+            let title = ConflictRules.conflictTitle(p.title, device: cloud.environment.deviceName, at: Date())
+            if let copy = try? await library.createConflictCopy(of: mine, title: title) {
+                await refresh(fromSync: true)
+                await selectNote(copy.id)
+                cloud.localChanged()
+                return
+            }
+        }
+        await refresh(fromSync: true)
+    }
+
+    /// Settings › Sync conflicts › Show Note: shows the notebook or tag whose rename lost.
+    func showConflict(_ c: SyncConflict) async {
+        switch c.type {
+        case .notebook: await select(.notebook(c.itemID))
+        case .tag: await select(.tag(c.itemID))
+        case .note: await select(.all); await selectNote(c.itemID)
+        case .attachment: break
+        }
     }
 
     // MARK: Sidebar
@@ -433,6 +472,7 @@ final class AppModel {
         runningSave = write
         await write.value
         if runningSave == write { runningSave = nil }
+        cloud.localChanged()
         await attempt {
             counts = try await library.counts()
             notes = try await library.notes(in: selection.scope)

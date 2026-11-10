@@ -2,7 +2,7 @@ import AppKit
 import FeatherCore
 import SwiftUI
 
-/// Settings: General and Advanced (Sync arrives with Feather Cloud in Phase 8).
+/// Settings: General, Sync and Advanced.
 struct SettingsView: View {
     @Bindable var model: AppModel
 
@@ -33,15 +33,14 @@ struct SettingsView: View {
             .padding(Spacing.s32)
             .tabItem { Label("General", systemImage: "gearshape") }
 
-            Form {
-                TextField("Server URL:", text: .constant(""), prompt: Text("https://cloud.feathernote.app"))
-                    .disabled(true)
-                Text("Custom servers arrive with Feather Cloud sync.")
-                    .font(Theme.meta)
-                    .foregroundStyle(Theme.textSecondary)
+            ScrollView {
+                SyncSettingsView(model: model).padding(Spacing.s32)
             }
-            .padding(Spacing.s32)
-            .tabItem { Label("Advanced", systemImage: "slider.horizontal.3") }
+            .tabItem { Label("Sync", systemImage: "arrow.triangle.2.circlepath") }
+
+            AdvancedSettingsView(cloud: model.cloud)
+                .padding(Spacing.s32)
+                .tabItem { Label("Advanced", systemImage: "slider.horizontal.3") }
         }
         .frame(width: 600)
     }

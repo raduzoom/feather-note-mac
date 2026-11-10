@@ -85,6 +85,7 @@ struct SidebarView: View {
             .padding(.vertical, Spacing.s8)
             .help("New Note (⌘N)")
         }
+        .safeAreaInset(edge: .bottom) { SyncStatusFooter(cloud: model.cloud) }
     }
 
     private func viewRow(_ title: String, _ icon: String, _ item: SidebarItem, count: Int?) -> some View {

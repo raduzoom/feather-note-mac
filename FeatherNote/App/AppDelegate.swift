@@ -25,7 +25,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let isolated = AppDelegate.isIsolatedRun()
         opened = Result {
             try AppModel.open(at: LibraryLocation.directory(),
-                              defaults: isolated ? UserDefaults(suiteName: "app.feathernote.FeatherNote.isolated")! : .standard)
+                              defaults: isolated ? UserDefaults(suiteName: "app.feathernote.FeatherNote.isolated")! : .standard,
+                              cloud: .live(isolated: isolated))
         }
         super.init()
     }
@@ -45,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSApp.servicesProvider = services
             NSUpdateDynamicServices()
             Task { await model.drainInbox() }
+            Task { await model.cloud.restoreAtLaunch() }   // only a stored sign-in reaches the network
         }
         addContinuityCameraItem()
         // SwiftUI rebuilds the Note menu whenever its content changes (opening a note does): put the item back
